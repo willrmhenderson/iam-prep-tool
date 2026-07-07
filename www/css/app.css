@@ -1,0 +1,102 @@
+/* Same green palette and plain-language, low-noise visual identity as
+   the original tool. Sizes are in rem (root 100% = 16px) instead of
+   fixed px so the app respects the device's text-size / Dynamic Type
+   setting - the original used hard px everywhere, which doesn't scale.
+   Contrast and touch-target sizes have been adjusted to meet WCAG 2.2
+   AA and the "large touch targets" requirement for this project (see
+   Phase 1 review). */
+
+*{box-sizing:border-box;margin:0;padding:0}
+html{font-size:100%}
+body{font-family:Arial,sans-serif;background:#f4f6f2;color:#1a1a1a;min-height:100vh;-webkit-text-size-adjust:100%}
+
+a,button,input,select,textarea{font-size:100%}
+
+:focus-visible{outline:3px solid #0F6E56;outline-offset:2px}
+
+.hdr{background:#2d4a1e;color:#fff;padding:1rem;text-align:center}
+.hdr h1{font-size:1.25rem;font-weight:500}
+.hdr p{font-size:0.75rem;opacity:0.85;margin-top:0.125rem}
+.wrap{max-width:42.5rem;margin:0 auto;padding:1.25rem 1rem 4rem}
+
+h2{font-size:1.125rem;font-weight:500;color:#1a1a1a;margin-bottom:0.5rem}
+h3{font-size:0.9375rem;font-weight:500;color:#1a1a1a;margin-bottom:0.375rem}
+p.body{font-size:0.875rem;color:#444;line-height:1.65;margin-bottom:0.5rem}
+label{font-size:0.8125rem;color:#555;display:block;margin:0.625rem 0 0.25rem}
+
+input[type=text],input[type=date],input[type=email],input[type=password],select,textarea{
+  width:100%;border:1px solid #bbb;border-radius:0.5rem;padding:0.6rem 0.8rem;
+  font-size:0.9375rem;font-family:Arial;color:#111;background:#fff;min-height:2.75rem
+}
+input:focus,select:focus,textarea:focus{outline:none;border-color:#1D9E75;box-shadow:0 0 0 3px rgba(29,158,117,0.2)}
+textarea{resize:vertical;min-height:5rem;line-height:1.6}
+
+.btn{border:1px solid #bbb;background:#fff;color:#111;border-radius:0.5rem;padding:0.7rem 1.1rem;
+  font-size:0.875rem;font-family:Arial;cursor:pointer;display:inline-flex;align-items:center;
+  gap:0.375rem;margin:0.25rem;min-height:2.75rem}
+.btn:hover{background:#f0f0f0}
+.btn:disabled{opacity:0.5;cursor:not-allowed}
+.primary{background:#1D9E75;color:#fff;border-color:#1D9E75}
+.primary:hover{background:#0F6E56}
+.danger{color:#8B1A1A;border-color:#e8b0b0}
+.sm{padding:0.55rem 0.9rem;font-size:0.8125rem;min-height:2.75rem}
+
+.card{background:#fff;border:1px solid #e0e8dc;border-radius:0.75rem;padding:1.25rem;margin-bottom:1rem}
+.card-green{border-left:4px solid #1D9E75;background:#f0faf5}
+.card-blue{border-left:4px solid #4a8ab5;background:#f0f6fc}
+
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:0.625rem}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.625rem}
+.nav{display:flex;gap:0.375rem;margin-top:1.25rem;flex-wrap:wrap;align-items:center}
+.muted{color:#5a5a5a;font-size:0.8125rem}
+
+.prog{background:#dde8d8;border-radius:0.25rem;height:0.4375rem;margin:0.75rem 0}
+.progf{height:0.4375rem;border-radius:0.25rem;background:#1D9E75;transition:width 0.4s}
+
+.tag{display:inline-block;font-size:0.6875rem;padding:0.2rem 0.55rem;border-radius:0.375rem;margin:0.125rem;font-weight:600}
+.tg{background:#d8f0e8;color:#0a5c38}.tb{background:#deedf7;color:#1a4f7a}
+.ta{background:#fdefd4;color:#6b3d08}.tn{background:#e9e9e9;color:#4d4d4d}.tr{background:#fde8e8;color:#7a1a1a}
+
+.met{background:#f4f8f2;border:1px solid #dde8d8;border-radius:0.5rem;padding:0.75rem;text-align:center}
+.met .n{font-size:1.625rem;font-weight:500;color:#1D9E75}
+.met .l{font-size:0.75rem;color:#5a5a5a;margin-top:0.125rem}
+
+.sdg{display:grid;grid-template-columns:repeat(auto-fit,minmax(7.5rem,1fr));gap:0.375rem;margin-bottom:0.75rem}
+.sdt{background:#f4f8f2;border:1px solid #dde8d8;border-radius:0.375rem;padding:0.3rem 0.55rem;font-size:0.75rem;color:#4f6a49}
+
+.tip{background:#f0faf5;border:1px solid #8ad4b0;border-radius:0.5rem;padding:0.65rem 0.9rem;margin-bottom:0.75rem}
+.tip p{color:#0a5c38;font-size:0.8125rem;line-height:1.6}
+.tip.am{background:#fdf8ee;border-color:#e8c070}
+.tip.am p{color:#6b3d08}
+
+.exb{background:#f8faf6;border:1px solid #dde8d8;border-radius:0.5rem;padding:0.75rem;margin-bottom:0.75rem}
+.exi{margin-bottom:0.5rem;padding-bottom:0.5rem;border-bottom:1px solid #eef2ec}
+.exi:last-child{margin-bottom:0;padding-bottom:0;border-bottom:none}
+.exi p{font-size:0.8125rem;font-style:italic;color:#4c6647;margin-bottom:0.3rem}
+
+.sbar{display:flex;align-items:center;gap:0.5rem;background:#f4f8f2;border:1px solid #dde8d8;
+  border-radius:0.5rem;padding:0.5rem 0.75rem;margin-bottom:1rem;font-size:0.75rem;color:#5a5a5a;flex-wrap:wrap}
+.sdot{width:0.5rem;height:0.5rem;border-radius:50%;background:#1D9E75;flex-shrink:0}
+.sdot.u{background:#c07a0a}
+
+.rc{border:2px solid #dde8d8;border-radius:0.75rem;padding:1rem;cursor:pointer;margin-bottom:0.5rem;
+  background:#fff;width:100%;text-align:left;display:block;min-height:2.75rem}
+.rc:hover,.rc.sel{border-color:#1D9E75;background:#f0faf5}
+
+.trow{display:flex;gap:0.375rem;margin-bottom:0.75rem;flex-wrap:wrap}
+.tbtn{flex:1;min-width:6rem;padding:0.75rem 0.5rem;font-size:0.8125rem;text-align:center;
+  border-radius:0.5rem;cursor:pointer;border:1px solid #bbb;background:#fff;font-family:Arial;min-height:2.75rem}
+.tbtn.act{background:#1D9E75;color:#fff;border-color:#1D9E75}
+
+.flag{background:#fdf8ee;border:1px solid #e8c070;border-radius:0.5rem;padding:0.625rem;margin-top:0.625rem;display:flex;gap:0.625rem}
+.supc{background:#f8faf6;border:1px solid #dde8d8;border-radius:0.625rem;padding:1rem;margin-bottom:0.625rem;position:relative}
+.sec{font-size:0.6875rem;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:#5a6e54;margin:1.2rem 0 0.5rem}
+.iqb{background:#f4f8f2;border-left:3px solid #1D9E75;border-radius:0.375rem;padding:0.55rem 0.8rem;margin-bottom:0.4375rem}
+.iqb p{font-size:0.8125rem;color:#222;line-height:1.6}
+
+.skip{font-size:0.8125rem;background:none;border:none;cursor:pointer;color:#666;padding:0.7rem 0.5rem;
+  text-decoration:underline;font-family:Arial;min-height:2.75rem}
+.ftr{text-align:center;padding:2rem 1rem;border-top:1px solid #e0e8dc;margin-top:2rem;font-size:0.6875rem;color:#666;line-height:1.8}
+
+@media(max-width:500px){.g2,.g3{grid-template-columns:1fr}.nav{flex-direction:column;align-items:stretch}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}

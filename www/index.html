@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>I-AM Preparation Tool</title>
+<!--
+  Content-Security-Policy as defence in depth: even if a future edit
+  ever missed the esc() escaping helper somewhere, this stops an
+  injected <script> or a foreign-origin script from running. connect-src
+  is scoped to Supabase so the app cannot be repointed at another host.
+-->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://*.supabase.co wss://*.supabase.co; base-uri 'none'; form-action 'none';">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="I-AM">
+<meta name="theme-color" content="#2d4a1e">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<div class="hdr">
+  <div>
+    <h1>I-AM Preparation Tool</h1>
+    <p>A Grace Slowly Resource &mdash; Copyright &copy; 2025 William Henderson and Sandra Henderson</p>
+  </div>
+</div>
+<div class="wrap">
+  <div id="root"><p style="padding:2rem;text-align:center;color:#888">Loading&hellip;</p></div>
+</div>
+<div class="ftr">
+  I-AM Preparation Tool &mdash; A resource of Grace Slowly<br>
+  Copyright &copy; 2025 William Henderson and Sandra Henderson. All rights reserved.<br>
+  <em>Not affiliated with the Centre for Disability Studies or the NDIA. Does not replace a formal NDIS assessment.</em>
+</div>
+<script src="vendor/jspdf.umd.min.js"></script>
+<!-- js/bundle.js is a generated file - run `npm run build` (esbuild) to
+     produce it from the editable source files in js/*.js. Do not edit
+     bundle.js directly. -->
+<script type="module" src="js/bundle.js"></script>
+</body>
+</html>

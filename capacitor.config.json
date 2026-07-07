@@ -1,0 +1,25 @@
+{
+  "appId": "au.com.graceslowly.iam",
+  "appName": "I-AM Preparation Tool",
+  "webDir": "www",
+  "backgroundColor": "#f4f6f2",
+  "ios": {
+    "contentInset": "always",
+    "backgroundColor": "#f4f6f2"
+  },
+  "android": {
+    "backgroundColor": "#f4f6f2"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 800,
+      "backgroundColor": "#2d4a1e",
+      "showSpinner": false
+    },
+    "CapacitorSQLite": {
+      "iosDatabaseLocation": "Library/CapacitorDatabase",
+      "iosIsEncryption": true,
+      "androidIsEncryption": true
+    }
+  }
+}

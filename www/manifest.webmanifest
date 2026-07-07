@@ -1,0 +1,21 @@
+{
+  "name": "I-AM Preparation Tool",
+  "short_name": "I-AM",
+  "description": "A 12-domain support-needs preparation tool for NDIS planning meetings.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f4f6f2",
+  "theme_color": "#2d4a1e",
+  "icons": [
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ]
+}

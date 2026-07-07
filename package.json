@@ -1,0 +1,32 @@
+{
+  "name": "iam-prep-tool",
+  "version": "1.0.0",
+  "description": "I-AM Preparation Tool - a 12-domain NDIS support-needs preparation resource by Grace Slowly.",
+  "private": true,
+  "scripts": {
+    "build": "esbuild www/js/main.js --bundle --outfile=www/js/bundle.js --format=esm --target=es2020",
+    "watch": "esbuild www/js/main.js --bundle --outfile=www/js/bundle.js --format=esm --target=es2020 --watch",
+    "sync": "npm run build && cap sync",
+    "open:ios": "cap open ios",
+    "open:android": "cap open android",
+    "add:ios": "cap add ios",
+    "add:android": "cap add android",
+    "serve": "npm run build && node dev-server.js"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.4.1",
+    "@capacitor/app": "^8.1.0",
+    "@capacitor/core": "^8.4.1",
+    "@capacitor/filesystem": "^8.1.2",
+    "@capacitor/ios": "^8.4.1",
+    "@capacitor/network": "^8.0.1",
+    "@capacitor/share": "^8.0.1",
+    "@capacitor-community/sqlite": "^8.1.0",
+    "capacitor-secure-storage-plugin": "^0.13.0",
+    "@supabase/supabase-js": "^2.110.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.4.1",
+    "esbuild": "^0.23.1"
+  }
+}
