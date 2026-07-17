@@ -21,6 +21,14 @@ export function rRole(hasSaved, savedLabel, savedDate){
     '<div><strong style="font-size:13px;color:#085041">Saved: ' + esc(savedLabel) + '</strong><br>' +
     '<span style="font-size:12px;color:#2d7a58">Last saved ' + esc(savedDate) + '</span></div>' +
     '<button type="button" class="btn primary sm" style="margin-left:auto" onclick="IAM.go(\'welcome\')">Continue &rarr;</button></div></div>' : "") +
+    '<div class="g2" style="margin-bottom:1.5rem">' +
+    '<button type="button" class="rc" onclick="IAM.focusRoleSection()" style="text-align:center;padding:1.25rem 1rem">' +
+    '<span style="font-size:26px;display:block;margin-bottom:6px" aria-hidden="true">&#128221;</span>' +
+    '<strong>Start my preparation</strong><br><span class="muted">The 12-area support needs tool</span></button>' +
+    '<button type="button" class="rc" onclick="IAM.startCheckin()" style="text-align:center;padding:1.25rem 1rem">' +
+    '<span style="font-size:26px;display:block;margin-bottom:6px" aria-hidden="true">&#127774;</span>' +
+    '<strong>Daily check-in</strong><br><span class="muted">30 seconds. How are you today?</span></button>' +
+    '</div>' +
     '<div style="margin-bottom:1.5rem"><h2 id="scr-h" style="margin-bottom:6px">Who are you?</h2><p class="body">Select your role to begin.</p></div>' +
     roleCard("participant", "&#128100;", "I am the participant", "I have a disability and am filling this in myself or with help.") +
     roleCard("support", "&#128101;", "I am a support person", "I am a family member, carer, or support worker.") +

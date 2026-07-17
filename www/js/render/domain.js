@@ -3,6 +3,18 @@ import { ST } from "../state.js";
 import { DOM, FREQ, STYP, IMP } from "../data.js";
 import { sb, selO, progressBar } from "./shared.js";
 
+// Example statements default open the first time a domain is seen
+// (participants who don't have the words yet benefit from seeing them
+// right away), then remember whichever state the user leaves them in
+// for the rest of the session. UI-only - not saved with the answers.
+var exampleState = {};
+function examplesExpanded(i){
+  return exampleState[i] === undefined ? true : exampleState[i];
+}
+export function toggleExamples(i){
+  exampleState[i] = !examplesExpanded(i);
+}
+
 export function rDomain(i){
   var d = DOM[i], s = ST.d[i];
   var isP = ST.role === "participant", isS = ST.role === "support", isPsy = ST.role === "psych";
@@ -17,8 +29,13 @@ export function rDomain(i){
       '<button type="button" class="tbtn' + (hardActive ? " act" : "") + '" aria-pressed="' + hardActive + '" onclick="IAM.setDomTab(' + i + ',\'bad\')">Hard day</button></div>';
     if (tab === "good"){
       dc += '<div class="tip"><p><strong>Good day:</strong> ' + (isP ? "Describe what you can do on a typical or better day, and what help you need." : "Participant&rsquo;s good day - what they can do with support.") + '</p></div>';
-      dc += '<div class="exb"><p style="font-size:11px;font-weight:600;color:#8a9e82;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px">Example statements - select to use</p>' +
-        d.ex.map(function(ex, ei){ return '<div class="exi"><p>&ldquo;' + esc(ex) + '&rdquo;</p><button type="button" class="btn sm" onclick="IAM.useEx(' + i + ',' + ei + ')">Use this</button></div>'; }).join("") + '</div>';
+      var exOpen = examplesExpanded(i);
+      dc += '<button type="button" class="btn sm" aria-expanded="' + exOpen + '" onclick="IAM.toggleExamples(' + i + ')" style="margin-bottom:8px">' +
+        (exOpen ? "Hide example statements" : "Show example statements (" + d.ex.length + ")") + '</button>';
+      if (exOpen){
+        dc += '<div class="exb"><p style="font-size:11px;font-weight:600;color:#8a9e82;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px">Example statements - select to use</p>' +
+          d.ex.map(function(ex, ei){ return '<div class="exi"><p>&ldquo;' + esc(ex) + '&rdquo;</p><button type="button" class="btn sm" onclick="IAM.useEx(' + i + ',' + ei + ')">Use this</button></div>'; }).join("") + '</div>';
+      }
       dc += '<label for="' + idp + 'gs">' + (isP ? "I can... (on a good day)" : "Good day statement") + '</label>' +
         '<textarea id="' + idp + 'gs" oninput="IAM.setDom(' + i + ',\'gs\',this.value)" placeholder="' + (isP ? "Start with I can..." : "Enter the participant&rsquo;s good day statement.") + '">' + esc(s.gs) + '</textarea>';
     } else {

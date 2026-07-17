@@ -24,7 +24,7 @@ supabase/
   migrations/0001_init.sql          Table + Row Level Security policies
   functions/delete-account/index.ts Account-deletion Edge Function
 dev-server.js           Tiny static server for browser preview
-capacitor.config.json   Native app config (app id: au.com.graceslowly.iam)
+capacitor.config.json   Native app config (app id: au.com.wshenderson.iam)
 ```
 
 ## 1. Prerequisites

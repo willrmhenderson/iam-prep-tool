@@ -15,6 +15,7 @@ export function fresh(){
     sups: [],
     adv: { typical:"", hard:"", risks:"", informal:"", equip:"", history:"", worked:"", failed:"", myword:"" },
     psych: { overview:"", goals:"", notes:"", readiness:"" },
+    checkins: [],
     savedAt: null, consentDate: null,
     preq: { dayRating:"", dayNote:"", disabilityDesc:"", trajectory:"", changeNote:"", dayVariation:"", assessHistory:"", assessDifficulty:"", commPref:"", commBarrier:"", commAdjust:"", sessionFlag:"" },
     brate: { locked:false, items:{} },

@@ -18,9 +18,9 @@ Work top to bottom. Items marked **(honesty)** are places where you must declare
 ## Part B — Apple App Store
 
 ### Account and signing
-- [ ] Enrol in the **Apple Developer Program** (developer.apple.com, US$99/year). Enrol as an individual, or as an organisation if Grace Slowly has an ABN you want on the listing (organisation enrolment needs a D-U-N-S number — allow 2 weeks).
+- [ ] Enrol in the **Apple Developer Program** (developer.apple.com, US$99/year). Enrol as an individual, or as an organisation if W & S Henderson has an ABN you want on the listing (organisation enrolment needs a D-U-N-S number — allow 2 weeks).
 - [ ] On the Mac, sign in to Xcode with that Apple ID (Xcode → Settings → Accounts). Xcode manages certificates and provisioning automatically ("Automatically manage signing" in Signing & Capabilities). You do not need to create certificates by hand.
-- [ ] In App Store Connect (appstoreconnect.apple.com): **My Apps → + → New App**. Bundle ID `au.com.graceslowly.iam` (must match `capacitor.config.json`), name "I-AM Preparation Tool".
+- [ ] In App Store Connect (appstoreconnect.apple.com): **My Apps → + → New App**. Bundle ID `au.com.wshenderson.iam` (must match `capacitor.config.json`), name "I-AM Preparation Tool".
 
 ### Build and upload
 - [ ] `npm run sync`, open Xcode, select **Any iOS Device**, then **Product → Archive**.
@@ -52,7 +52,7 @@ Declare exactly this in App Store Connect → App Privacy:
 
 ### Account and signing
 - [ ] Register a **Google Play Console** developer account (play.google.com/console, US$25 one-off). Identity verification can take a few days.
-- [ ] Create the app in Play Console: name "I-AM Preparation Tool", package `au.com.graceslowly.iam`.
+- [ ] Create the app in Play Console: name "I-AM Preparation Tool", package `au.com.wshenderson.iam`.
 - [ ] Build a signed **Android App Bundle**: in Android Studio, **Build → Generate Signed App Bundle**, create a new keystore, and **back the keystore file and its passwords up somewhere safe** (password manager + offline copy). Opt in to **Play App Signing** when uploading (Google keeps the signing key; your keystore becomes the upload key — this is the safe default).
 
 ### Data safety form **(honesty)**

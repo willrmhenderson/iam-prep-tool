@@ -5,7 +5,7 @@ import { rRole } from "./render/role.js";
 import { rWelcome } from "./render/welcome.js";
 import { rPart } from "./render/part.js";
 import { rPreq } from "./render/preq.js";
-import { rBrate } from "./render/brate.js";
+import { rBrate, rBrateDomain, rBrateReview } from "./render/brate.js";
 import { rEdusheet } from "./render/edusheet.js";
 import { rBarrier } from "./render/barrier.js";
 import { rDomain } from "./render/domain.js";
@@ -14,6 +14,8 @@ import { rAdv } from "./render/adv.js";
 import { rPsych } from "./render/psych.js";
 import { rReview } from "./render/review.js";
 import { rReport } from "./render/report.js";
+import { rCheckin } from "./render/checkin.js";
+import { rCheckinHistory } from "./render/checkin-history.js";
 
 // ctx carries the bits of runtime context that live outside ST
 // (auth session, the account-deletion confirmation UI state, and the
@@ -30,12 +32,16 @@ export function renderScreen(ctx){
   // localOnly = Supabase not configured yet (see config.js). The app
   // runs without accounts or sync so the UI can be tested locally.
   if (!ctx.session && !ctx.localOnly) return rAuth();
+  if (s === "checkin") return rCheckin();
+  if (s === "checkin-history") return rCheckinHistory();
   if (s === "consent") return rConsent();
   if (s === "role") return rRole(ctx.hasSaved, ctx.savedLabel, ctx.savedDate);
   if (s === "welcome") return rWelcome();
   if (s === "part") return rPart();
   if (s === "preq") return rPreq();
   if (s === "brate") return rBrate();
+  if (s === "brate-review") return rBrateReview();
+  if (s && s.t === "r") return rBrateDomain(s.i);
   if (s === "edusheet") return rEdusheet();
   if (s && s.t === "b") return rBarrier(s.i);
   if (s && s.t === "d") return rDomain(s.i);

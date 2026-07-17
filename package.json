@@ -1,7 +1,7 @@
 {
   "name": "iam-prep-tool",
   "version": "1.0.0",
-  "description": "I-AM Preparation Tool - a 12-domain NDIS support-needs preparation resource by Grace Slowly.",
+  "description": "I-AM Preparation Tool - a 12-domain NDIS support-needs preparation resource by W & S Henderson.",
   "private": true,
   "scripts": {
     "build": "esbuild www/js/main.js --bundle --outfile=www/js/bundle.js --format=esm --target=es2020",

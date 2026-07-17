@@ -15,6 +15,10 @@ import * as authApi from "./auth.js";
 import { onNetworkChange, deleteAccountEverywhere } from "./supabase.js";
 import { isConfigured } from "./config.js";
 import { dlPDF, dlText, expJSON, impJSON } from "./pdf.js";
+import { toggleExamples } from "./render/domain.js";
+import { startDraft, getDraft, isEditing, setDraftField, supFirstNames } from "./render/checkin.js";
+import { checkCrisisLanguage, safetyCardHtml } from "./safety.js";
+import { dlCheckinPDF as pdfCheckin, dlCheckinText as txtCheckin } from "./pdf.js";
 
 let session = null;
 let deleteState = { confirmText: "", busy: false, error: "" };
@@ -159,6 +163,7 @@ async function lockBrate(){
 
 // ---- domains ----
 function setDomTab(i, tab){ ST.d[i].tab = tab; touch(); refresh(); }
+function toggleExamplesUI(i){ toggleExamples(i); refresh(); }
 function setDom(i, key, val){ ST.d[i][key] = val; touch(); }
 function setDomFlag(i, checked){ ST.d[i].sf = checked; touch(); refresh(); }
 function setDomPFlag(i, checked){ ST.d[i].pf = checked; touch(); }
@@ -184,6 +189,54 @@ function addSup(){ ST.sups.push({ id: nextSid(), name:"", rel:"", dur:"", suppor
 function rmSup(idx){ ST.sups.splice(idx, 1); touch(); refresh(); }
 function setSup(idx, key, val){ ST.sups[idx][key] = val; touch(); }
 
+// ---- daily check-in ----
+function startCheckin(){ startDraft(null); go("checkin"); }
+function editCheckin(id){ startDraft(id); go("checkin"); }
+function leaveCheckin(){ go(ST.checkins.length ? "checkin-history" : "role"); }
+
+// Rating buttons re-render (to show the pressed state); the note field
+// does NOT re-render on input - it live-patches only the safety card,
+// so typing never loses cursor focus. The safety check is pure local
+// string matching (see safety.js) - it can never be blocked by
+// network state.
+function setCheckin(key, val){ setDraftField(key, val); if (key !== "moodWord") refresh(); }
+function setCheckinNote(val){
+  setDraftField("note", val);
+  var slot = document.getElementById("safety-card");
+  if (slot) slot.innerHTML = safetyCardHtml(checkCrisisLanguage(val).level, supFirstNames());
+}
+async function saveCheckin(){
+  var d = getDraft();
+  if (!d) return;
+  if (isEditing()){
+    var idx = ST.checkins.findIndex(function(c){ return c.id === d.id; });
+    if (idx !== -1) ST.checkins[idx] = d; else ST.checkins.push(d);
+  } else {
+    ST.checkins.push(d);
+  }
+  touch();
+  await save();
+  go("checkin-history");
+}
+function deleteCheckin(id){
+  if (!confirm("Delete this check-in? This cannot be undone.")) return;
+  ST.checkins = ST.checkins.filter(function(c){ return c.id !== id; });
+  touch(); save();
+  refresh();
+}
+function focusRoleSection(){
+  var h = document.getElementById("scr-h");
+  if (h){ h.setAttribute("tabindex", "-1"); h.focus(); h.scrollIntoView({ behavior: "smooth", block: "center" }); }
+}
+function dlCheckinPDFUI(){
+  var f = document.getElementById("ck-from"), t = document.getElementById("ck-to");
+  pdfCheckin(f ? f.value : "", t ? t.value : "");
+}
+function dlCheckinTextUI(){
+  var f = document.getElementById("ck-from"), t = document.getElementById("ck-to");
+  txtCheckin(f ? f.value : "", t ? t.value : "");
+}
+
 // ---- advocacy / psych ----
 function setAdv(key, val){ ST.adv[key] = val; touch(); }
 function setPsych(key, val){ ST.psych[key] = val; touch(); }
@@ -196,9 +249,14 @@ const IAM = {
   signOut: signOut, setDeleteConfirmText: setDeleteConfirmText, confirmDeleteAccount: confirmDeleteAccount,
   setPreq: setPreq, setBrate: setBrate, lockBrate: lockBrate,
   setDomTab: setDomTab, setDom: setDom, setDomFlag: setDomFlag, setDomPFlag: setDomPFlag,
+  toggleExamples: toggleExamplesUI,
   useEx: useEx, saveDom: saveDom, skipDom: skipDom,
   addSup: addSup, rmSup: rmSup, setSup: setSup,
   setAdv: setAdv, setPsych: setPsych,
+  startCheckin: startCheckin, editCheckin: editCheckin, leaveCheckin: leaveCheckin,
+  setCheckin: setCheckin, setCheckinNote: setCheckinNote, saveCheckin: saveCheckin,
+  deleteCheckin: deleteCheckin, focusRoleSection: focusRoleSection,
+  dlCheckinPDF: dlCheckinPDFUI, dlCheckinText: dlCheckinTextUI,
   dlPDF: dlPDF, dlText: dlText, expJSON: expJSON, impJSON: impJSON
 };
 Object.defineProperty(IAM, "ST", { get: function(){ return ST; } });

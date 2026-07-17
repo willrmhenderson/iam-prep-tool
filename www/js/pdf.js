@@ -107,7 +107,7 @@ export async function dlPDF(){
   doc.setFontSize(13); doc.setFont("helvetica", "bold"); doc.setTextColor(255, 255, 255);
   doc.text("I-AM PREPARATION REPORT", ML, 8);
   doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.setTextColor(180, 220, 180);
-  doc.text("A Grace Slowly Resource - Copyright 2025 William & Sandra Henderson", ML, 13);
+  doc.text("A W & S Henderson Resource - Copyright 2025 William & Sandra Henderson", ML, 13);
   doc.setTextColor(200, 220, 200); doc.text("Date: " + (p.date || new Date().toISOString().split("T")[0]), 165, 8);
   y = 22;
   doc.setFillColor(235, 248, 238); doc.rect(ML - 2, y - 2, TW + 4, 14, "F");
@@ -181,12 +181,131 @@ export async function dlPDF(){
   var pages = doc.getNumberOfPages();
   for (var pg = 1; pg <= pages; pg++){
     doc.setPage(pg); doc.setFontSize(7); doc.setFont("helvetica", "normal"); doc.setTextColor(160, 160, 160);
-    doc.text("Page " + pg + " of " + pages + " | I-AM Preparation Report | Grace Slowly | Not a formal assessment | Copyright 2025 William & Sandra Henderson", ML, 292);
+    doc.text("Page " + pg + " of " + pages + " | I-AM Preparation Report | W & S Henderson | Not a formal assessment | Copyright 2025 William & Sandra Henderson", ML, 292);
   }
 
   var filename = "IAM_Prep_" + (p.name || "participant").replace(/\s+/g, "_") + "_" + (p.date || "draft") + ".pdf";
   var blob = doc.output("blob");
   await deliverFile(filename, blob, "application/pdf");
+}
+
+function filterCheckins(fromStr, toStr){
+  var entries = ST.checkins.slice().sort(function(a, b){ return new Date(a.at) - new Date(b.at); });
+  if (fromStr){
+    var from = new Date(fromStr + "T00:00:00");
+    entries = entries.filter(function(c){ return new Date(c.at) >= from; });
+  }
+  if (toStr){
+    var to = new Date(toStr + "T23:59:59");
+    entries = entries.filter(function(c){ return new Date(c.at) <= to; });
+  }
+  return entries;
+}
+
+function checkinRangeLabel(fromStr, toStr){
+  if (fromStr && toStr) return fromStr + " to " + toStr;
+  if (fromStr) return "from " + fromStr;
+  if (toStr) return "up to " + toStr;
+  return "all entries";
+}
+
+function ratingText(c){
+  var parts = [];
+  if (c.mood !== null && c.mood !== undefined) parts.push("Feeling " + c.mood + (c.moodWord ? " (" + c.moodWord + ")" : ""));
+  if (c.fatigue !== null && c.fatigue !== undefined) parts.push("Tired " + c.fatigue);
+  if (c.pain !== null && c.pain !== undefined) parts.push("Pain " + c.pain);
+  if (c.clarity !== null && c.clarity !== undefined) parts.push("Foggy " + c.clarity);
+  return parts.length ? parts.join(", ") : "No ratings recorded";
+}
+
+// Check-in diary summary. Same structure and delivery as the main
+// report: ratings shown plainly, then every note in full, verbatim,
+// in the participant's own words. No interpretation, no commentary.
+export async function dlCheckinPDF(fromStr, toStr){
+  var entries = filterCheckins(fromStr, toStr);
+  var jsPDF = window.jspdf.jsPDF;
+  var doc = new jsPDF({ unit: "mm", format: "a4" });
+  var W = 210, ML = 15, MR = 15, TW = W - ML - MR, y = 18;
+  function chk(h){ if (y + h > 282){ doc.addPage(); y = 18; } }
+  function gap(n){ y += (n || 3); }
+  function rule(r, g, bl){ chk(2); doc.setDrawColor(r || 180, g || 180, bl || 180); doc.line(ML, y, W - MR, y); y += 4; }
+  function wr(t, sz, bold, r, g, bl){
+    doc.setFontSize(sz || 9); doc.setFont("helvetica", bold ? "bold" : "normal");
+    doc.setTextColor(r || 40, g || 40, bl || 40);
+    var lines = doc.splitTextToSize(String(t || ""), TW);
+    chk(lines.length * 6); doc.text(lines, ML, y); y += lines.length * 6 + (sz > 11 ? 2 : 0);
+  }
+  function h1(t){ gap(4); wr(t, 13, true, 45, 74, 30); gap(1); rule(45, 74, 30); }
+
+  doc.setFillColor(45, 74, 30); doc.rect(0, 0, 210, 16, "F");
+  doc.setFontSize(13); doc.setFont("helvetica", "bold"); doc.setTextColor(255, 255, 255);
+  doc.text("DAILY CHECK-IN SUMMARY", ML, 8);
+  doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.setTextColor(180, 220, 180);
+  doc.text("A W & S Henderson Resource - Copyright 2025 William & Sandra Henderson", ML, 13);
+  y = 22;
+  doc.setFillColor(235, 248, 238); doc.rect(ML - 2, y - 2, TW + 4, 10, "F");
+  doc.setFontSize(7.5); doc.setFont("helvetica", "italic"); doc.setTextColor(40, 100, 60);
+  doc.text("The participant's own record, in their own words. Not a clinical assessment. Ratings are self-rated 0-4.", ML, y + 3);
+  y += 14;
+
+  wr("Participant: " + (ST.p.name || "Not stated"), 10, true);
+  wr("Period: " + checkinRangeLabel(fromStr, toStr) + "  |  Entries: " + entries.length, 9, false);
+
+  h1("Ratings");
+  wr("Scales: Feeling 0 very low - 4 really good. Tired 0 not tired - 4 exhausted. Pain 0 none - 4 severe. Foggy 0 clear - 4 very foggy.", 8, false, 100, 100, 100);
+  gap(2);
+  entries.forEach(function(c){
+    wr(new Date(c.at).toLocaleDateString() + " " + new Date(c.at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) + "  -  " + ratingText(c), 9, false);
+  });
+
+  var noted = entries.filter(function(c){ return c.note && c.note.trim(); });
+  if (noted.length){
+    h1("Notes, in the participant's own words");
+    noted.forEach(function(c){
+      gap(2);
+      wr(new Date(c.at).toLocaleDateString(), 9, true);
+      wr(c.note, 9, false, 60, 60, 60);
+    });
+  }
+
+  var pages = doc.getNumberOfPages();
+  for (var pg = 1; pg <= pages; pg++){
+    doc.setPage(pg); doc.setFontSize(7); doc.setFont("helvetica", "normal"); doc.setTextColor(160, 160, 160);
+    doc.text("Page " + pg + " of " + pages + " | Daily Check-in Summary | W & S Henderson | Not a clinical assessment | Copyright 2025 William & Sandra Henderson", ML, 292);
+  }
+
+  var filename = "IAM_Checkins_" + (ST.p.name || "participant").replace(/\s+/g, "_") + ".pdf";
+  await deliverFile(filename, doc.output("blob"), "application/pdf");
+}
+
+export async function dlCheckinText(fromStr, toStr){
+  var entries = filterCheckins(fromStr, toStr);
+  var lines = [];
+  function line(t){ lines.push(t || ""); }
+  line("DAILY CHECK-IN SUMMARY");
+  line("A W & S Henderson Resource - Copyright 2025 William & Sandra Henderson");
+  line("The participant's own record, in their own words. Not a clinical assessment.");
+  line("");
+  line("Participant: " + (ST.p.name || "Not stated"));
+  line("Period: " + checkinRangeLabel(fromStr, toStr) + " | Entries: " + entries.length);
+  line("");
+  line("RATINGS");
+  line("Scales: Feeling 0 very low - 4 really good. Tired 0 not tired - 4 exhausted. Pain 0 none - 4 severe. Foggy 0 clear - 4 very foggy.");
+  entries.forEach(function(c){
+    line(new Date(c.at).toLocaleDateString() + " " + new Date(c.at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) + " - " + ratingText(c));
+  });
+  var noted = entries.filter(function(c){ return c.note && c.note.trim(); });
+  if (noted.length){
+    line("");
+    line("NOTES, IN THE PARTICIPANT'S OWN WORDS");
+    noted.forEach(function(c){
+      line("");
+      line(new Date(c.at).toLocaleDateString() + ":");
+      line(c.note);
+    });
+  }
+  var filename = "IAM_Checkins_" + (ST.p.name || "participant").replace(/\s+/g, "_") + ".txt";
+  await deliverFile(filename, new Blob([lines.join("\n")], { type: "text/plain" }), "text/plain");
 }
 
 export async function dlText(){
@@ -196,7 +315,7 @@ export async function dlText(){
   function section(t){ line(""); line(t.toUpperCase()); line("-".repeat(t.length)); }
 
   line("I-AM PREPARATION REPORT");
-  line("A Grace Slowly Resource - Copyright 2025 William & Sandra Henderson");
+  line("A W & S Henderson Resource - Copyright 2025 William & Sandra Henderson");
   line("Date: " + (p.date || new Date().toISOString().split("T")[0]));
   line("PREPARATION TOOL ONLY - Does not replace a formal NDIS assessment by a qualified assessor.");
 

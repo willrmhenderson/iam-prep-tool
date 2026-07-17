@@ -1,7 +1,7 @@
 # Privacy Policy — I-AM Preparation Tool
 
 **Effective date: [insert date before publishing]**
-**Who we are:** William Henderson and Sandra Henderson, trading as Grace Slowly, Toowoomba, Queensland, Australia. Contact: [insert support email].
+**Who we are:** William Henderson and Sandra Henderson, trading as W & S Henderson, Toowoomba, Queensland, Australia. Contact: [insert support email].
 
 > **DRAFT — review before publishing.** This draft is written to reflect how the app is actually built. Before you publish it: insert the effective date and contact email, confirm the supervising-psychologist arrangement described in the app's consent screen, and consider having it checked by someone qualified in Australian privacy law. It is a plain-English policy, not legal advice.
 
