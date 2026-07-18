@@ -274,8 +274,19 @@ export async function pushPending(){
 
     PUSHING = false;
     setCloud(anyFailed ? "error" : "ok");
-    if (REPUSH || getPendingKeys().length) pushPending();
-    return { pushed: confirmed.length > 0, reason: anyFailed ? "partial failure - some sections retrying" : undefined };
+    // Only REPUSH (someone explicitly asked for another push while
+    // this one was in flight) re-triggers immediately. Using leftover
+    // getPendingKeys() here instead - as this used to - meant a
+    // section that fails for a structural reason (bad data, a
+    // rejected trigger, anything that isn't transient) retried with
+    // zero backoff, forever: found live when a check-in withdrawal
+    // hit a genuine mismatch and the app hammered Supabase with
+    // hundreds of identical failing requests a second. A section
+    // that's still pending after a real failure gets picked up again
+    // by the next real trigger - the next touch()/save(), the next
+    // network reconnect, the next app open - not by this loop.
+    if (REPUSH) pushPending();
+    return { pushed: confirmed.length > 0, reason: anyFailed ? "partial failure - will retry on next change or reconnect" : undefined };
   }catch(e){
     PUSHING = false;
     confirmed.forEach(markSynced);
@@ -337,15 +348,30 @@ function adoptCheckins(rows){
 }
 // Union merge - the journal is append-only, so a pull can never make
 // an entry disappear. Server rows are truth for anything the server
-// has received (its copy is immutable and carries the real withdrawal
-// state); local-only entries (not yet receipted) are kept. Returns
-// true when local-only entries remain, i.e. a push is still owed.
+// has received AND confirmed - except one case: a local withdrawal
+// that hasn't been pushed yet. push() saves locally and pushes in the
+// background (state.js's save() does not await trySync()), so a pull
+// racing that in-flight push must not silently revert an already
+// (locally) withdrawn entry back to its pre-withdrawal content - that
+// was a real bug, found live: withdraw, then reload before the push
+// finished, and the words came back. Content edits can't have this
+// problem (they're rejected outright, never silently applied), so
+// withdrawal is the only local-ahead-of-server state to protect.
+// Local-only entries (not yet receipted at all) are always kept.
+// Returns true when anything here still needs pushing.
 function unionCheckins(rows){
   var byId = {};
   rows.forEach(function(r){ byId[String(r.local_id)] = serverCheckin(r); });
+  var localById = {};
+  ST.checkins.forEach(function(c){ localById[String(c.id)] = c; });
   var localOnly = ST.checkins.filter(function(c){ return !byId[String(c.id)]; });
-  ST.checkins = rows.map(function(r){ return byId[String(r.local_id)]; }).concat(localOnly);
-  return localOnly.length > 0;
+  var owed = localOnly.length > 0;
+  ST.checkins = rows.map(function(r){
+    var id = String(r.local_id), srv = byId[id], loc = localById[id];
+    if (loc && loc.withdrawnAt && !srv.withdrawnAt){ owed = true; return loc; }
+    return srv;
+  }).concat(localOnly);
+  return owed;
 }
 function adoptB(b){
   ST.brate = { locked: !!b.locked, items: b.items || {} };
