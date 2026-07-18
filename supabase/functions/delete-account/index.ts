@@ -1,49 +1,60 @@
-// Supabase Edge Function: permanently deletes the calling user's
-// account and all of their data.
+// ============================================================================
+// I-AM Preparation Tool — Edge Function: delete-account
+// ============================================================================
+// Deploy via Supabase dashboard: Edge Functions -> Deploy a new function
+//   -> "Via Editor" -> name it exactly:  delete-account
+//   -> replace the sample code with this file -> Deploy.
+// Leave "Verify JWT" ON (the default): only a logged-in user's request
+// carrying a valid access token can reach this function.
 //
-// This is the only place the service_role key is used anywhere in
-// this project - it never appears in the app itself. Deploy with:
-//   supabase functions deploy delete-account
+// What it does: identifies the calling user from their own access token, then
+// deletes that auth user with admin rights. The ON DELETE CASCADE constraints
+// created in supabase-schema.sql wipe every row that belonged to them
+// (assessments, domains, support persons, before-ratings) in one transaction.
+// No orphaned records are possible, and a user can only ever delete
+// THEMSELVES — the target user id comes from the verified token, never from
+// the request body.
 //
-// The function only trusts the caller's own JWT (passed automatically
-// by supabase.functions.invoke() from the app) to identify which
-// account to delete - a user can never delete anyone else's account,
-// because the user id is read from their own verified token, not from
-// a request parameter.
+// SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are injected automatically by
+// Supabase; the service-role key never leaves the server.
+// ============================================================================
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 
-const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const cors = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, content-type, apikey",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+const json = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { ...cors, "Content-Type": "application/json" },
+  });
 
 Deno.serve(async (req) => {
-  if (req.method !== "POST"){
-    return new Response(JSON.stringify({ error: "Method not allowed" }), { status: 405 });
+  if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
+  if (req.method !== "POST") return json({ error: "Use POST" }, 405);
+
+  try {
+    const token = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
+    if (!token) return json({ error: "Not logged in" }, 401);
+
+    const admin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      { auth: { autoRefreshToken: false, persistSession: false } },
+    );
+
+    // Resolve the caller from THEIR token — they can only delete themselves.
+    const { data: userData, error: userErr } = await admin.auth.getUser(token);
+    if (userErr || !userData?.user) return json({ error: "Not logged in" }, 401);
+
+    const { error: delErr } = await admin.auth.admin.deleteUser(userData.user.id);
+    if (delErr) return json({ error: delErr.message }, 500);
+
+    return json({ ok: true });
+  } catch (e) {
+    return json({ error: e instanceof Error ? e.message : String(e) }, 500);
   }
-
-  const authHeader = req.headers.get("Authorization") || "";
-  const jwt = authHeader.replace(/^Bearer\s+/i, "");
-  if (!jwt){
-    return new Response(JSON.stringify({ error: "Missing authorization" }), { status: 401 });
-  }
-
-  const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
-
-  const { data: userData, error: userErr } = await admin.auth.getUser(jwt);
-  if (userErr || !userData.user){
-    return new Response(JSON.stringify({ error: "Invalid session" }), { status: 401 });
-  }
-  const userId = userData.user.id;
-
-  const { error: deleteRowError } = await admin.from("assessments").delete().eq("user_id", userId);
-  if (deleteRowError){
-    return new Response(JSON.stringify({ error: "Could not delete assessment data: " + deleteRowError.message }), { status: 500 });
-  }
-
-  const { error: deleteUserError } = await admin.auth.admin.deleteUser(userId);
-  if (deleteUserError){
-    return new Response(JSON.stringify({ error: "Could not delete account: " + deleteUserError.message }), { status: 500 });
-  }
-
-  return new Response(JSON.stringify({ ok: true }), { status: 200, headers: { "Content-Type": "application/json" } });
 });

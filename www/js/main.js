@@ -6,13 +6,13 @@
 
 import { Network } from "@capacitor/network";
 import { DOM } from "./data.js";
-import { ST, touch, save, loadInitial, resetAll, nextSid, onStatus, trySync } from "./state.js";
+import { ST, touch, save, loadInitial, resetAll, nextSid, onStatus, trySync, getPendingChoice, establishSnapshotBaseline } from "./state.js";
 import { renderScreen } from "./render.js";
 import { focusScreenHeading } from "./render/shared.js";
 import { giveConsentAction } from "./render/consent.js";
 import * as authUi from "./render/auth.js";
 import * as authApi from "./auth.js";
-import { onNetworkChange, deleteAccountEverywhere } from "./supabase.js";
+import { onNetworkChange, deleteAccountEverywhere, keepCloudChoice, keepLocalChoice } from "./supabase.js";
 import { isConfigured } from "./config.js";
 import { dlPDF, dlText, expJSON, impJSON } from "./pdf.js";
 import { toggleExamples } from "./render/domain.js";
@@ -33,7 +33,8 @@ function ctx(){
     deleteState: deleteState,
     hasSaved: hasSaved,
     savedLabel: (ST.p && ST.p.name) || "Previous assessment",
-    savedDate: ST.savedAt ? new Date(ST.savedAt).toLocaleDateString() : ""
+    savedDate: ST.savedAt ? new Date(ST.savedAt).toLocaleDateString() : "",
+    choice: getPendingChoice()
   };
 }
 
@@ -137,6 +138,21 @@ async function confirmDeleteAccount(){
     deleteState.error = (e && e.message) || "Could not delete your account. Check your connection and try again.";
     refresh();
   }
+}
+
+// ---- first-sync conflict choice ----
+async function keepCloud(){
+  if (!confirm("Keep the answers in your account?\n\nThe answers on this device will be replaced.")) return;
+  await keepCloudChoice();
+  establishSnapshotBaseline();
+  refresh();
+}
+async function keepLocal(){
+  if (!confirm("Keep the answers on this device?\n\nThe answers in your account will be replaced.")) return;
+  await keepLocalChoice();
+  establishSnapshotBaseline();
+  await save();
+  refresh();
 }
 
 // ---- pre-questions ----
@@ -245,6 +261,7 @@ function setPsych(key, val){ ST.psych[key] = val; touch(); }
 const IAM = {
   touch: touch, save: save, refresh: refresh, go: go, gd: gd, doBreak: doBreak,
   giveConsent: giveConsent, setRole: setRole, continueFromRole: continueFromRole, confirmStartFresh: confirmStartFresh,
+  keepCloud: keepCloud, keepLocal: keepLocal,
   submitAuth: submitAuth, forgotPassword: forgotPassword, setAuthMode: setAuthMode,
   signOut: signOut, setDeleteConfirmText: setDeleteConfirmText, confirmDeleteAccount: confirmDeleteAccount,
   setPreq: setPreq, setBrate: setBrate, lockBrate: lockBrate,

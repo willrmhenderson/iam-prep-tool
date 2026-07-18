@@ -64,9 +64,14 @@ async function initNative(){
     "user_id TEXT, " +
     "data TEXT NOT NULL, " +
     "updated_at TEXT NOT NULL, " +
-    "dirty INTEGER NOT NULL DEFAULT 0" +
+    "dirty INTEGER NOT NULL DEFAULT 0, " +
+    "sync_mark TEXT, " +      // which account's data currently occupies this device
+    "sync_lock INTEGER" +      // set on explicit logout - blocks the offline-login bypass
     ");"
   );
+  // Older installs may already have the table without these two columns.
+  try{ await db.execute("ALTER TABLE assessment ADD COLUMN sync_mark TEXT"); }catch(e){}
+  try{ await db.execute("ALTER TABLE assessment ADD COLUMN sync_lock INTEGER"); }catch(e){}
 }
 
 async function initWeb(){
@@ -81,9 +86,16 @@ async function initWeb(){
     },
     run: async function(sql, values){
       if (sql.indexOf("INSERT") === 0 || sql.indexOf("UPDATE") === 0){
-        localStorage.setItem("iam_web_dev_row", JSON.stringify({
-          id: ROW_ID, user_id: values[0], data: values[1], updated_at: values[2], dirty: values[3]
-        }));
+        var existingRaw = localStorage.getItem("iam_web_dev_row");
+        var existing = existingRaw ? JSON.parse(existingRaw) : {};
+        if (sql.indexOf("sync_mark") !== -1){
+          existing.sync_mark = values[0];
+        } else if (sql.indexOf("sync_lock") !== -1){
+          existing.sync_lock = values[0];
+        } else {
+          existing = { id: ROW_ID, user_id: values[0], data: values[1], updated_at: values[2], dirty: values[3], sync_mark: existing.sync_mark, sync_lock: existing.sync_lock };
+        }
+        localStorage.setItem("iam_web_dev_row", JSON.stringify(existing));
       }
       return { changes: { changes: 1 } };
     }
@@ -120,6 +132,47 @@ export async function saveRow(userId, dataObj, dirty){
     );
   }
   return updatedAt;
+}
+
+// Which account's data currently occupies this device (or null) - used
+// to make sure a second person signing in on a shared device never
+// gets the first person's answers merged into, or pushed from, their
+// own account. Ported from the proven design's SYNCMARK.
+export async function getSyncMark(){
+  await init();
+  var row = await loadRow();
+  return (row && row.sync_mark) || null;
+}
+export async function setSyncMark(userId){
+  await init();
+  if (Capacitor.getPlatform() === "web"){
+    var raw = localStorage.getItem("iam_web_dev_row");
+    var existing = raw ? JSON.parse(raw) : {};
+    existing.sync_mark = userId;
+    localStorage.setItem("iam_web_dev_row", JSON.stringify(existing));
+    return;
+  }
+  await db.run("UPDATE assessment SET sync_mark = ? WHERE id = ?", [userId, ROW_ID]);
+}
+
+// Set on explicit sign-out so the "keep working offline" bypass on the
+// sign-in screen is disabled until the next real login. A session
+// simply expiring (not a deliberate sign-out) does NOT set this.
+export async function getSyncLock(){
+  await init();
+  var row = await loadRow();
+  return !!(row && row.sync_lock);
+}
+export async function setSyncLock(locked){
+  await init();
+  if (Capacitor.getPlatform() === "web"){
+    var raw = localStorage.getItem("iam_web_dev_row");
+    var existing = raw ? JSON.parse(raw) : {};
+    existing.sync_lock = locked ? 1 : 0;
+    localStorage.setItem("iam_web_dev_row", JSON.stringify(existing));
+    return;
+  }
+  await db.run("UPDATE assessment SET sync_lock = ? WHERE id = ?", [locked ? 1 : 0, ROW_ID]);
 }
 
 export async function clearRow(){

@@ -16,6 +16,7 @@ import { rReview } from "./render/review.js";
 import { rReport } from "./render/report.js";
 import { rCheckin } from "./render/checkin.js";
 import { rCheckinHistory } from "./render/checkin-history.js";
+import { rChoice } from "./render/choice.js";
 
 // ctx carries the bits of runtime context that live outside ST
 // (auth session, the account-deletion confirmation UI state, and the
@@ -32,6 +33,9 @@ export function renderScreen(ctx){
   // localOnly = Supabase not configured yet (see config.js). The app
   // runs without accounts or sync so the UI can be tested locally.
   if (!ctx.session && !ctx.localOnly) return rAuth();
+  // Shown ahead of every other screen, regardless of step, until the
+  // participant resolves which set of answers to keep - see supabase.js.
+  if (ctx.choice) return rChoice(ctx.choice);
   if (s === "checkin") return rCheckin();
   if (s === "checkin-history") return rCheckinHistory();
   if (s === "consent") return rConsent();
