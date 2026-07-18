@@ -446,8 +446,22 @@ export async function keepLocalChoice(){
 }
 
 export async function deleteAccountEverywhere(){
-  var { data, error } = await supabase.functions.invoke("delete-account", { method: "POST" });
-  if (error) throw error;
+  // Calls the Edge Function directly with fetch() rather than through
+  // supabase.functions.invoke(). Found via live testing that in this
+  // environment invoke() can send the request with an empty header
+  // set - a client-library bug, not a problem with the deployed
+  // function itself, and passing headers through invoke()'s own
+  // options did not fix it either. A direct fetch with explicit
+  // headers was verified to work reliably, so that is what ships.
+  var { data: sessionData } = await supabase.auth.getSession();
+  var token = sessionData && sessionData.session && sessionData.session.access_token;
+  if (!token) throw new Error("Not signed in");
+  var res = await fetch(SUPABASE_URL + "/functions/v1/delete-account", {
+    method: "POST",
+    headers: { apikey: SUPABASE_ANON_KEY, Authorization: "Bearer " + token, "Content-Type": "application/json" }
+  });
+  var data = await res.json().catch(function(){ return null; });
+  if (!res.ok) throw new Error((data && data.error) || ("Delete failed (" + res.status + ")"));
   await db.clearRow();
   resetSyncSession();
   await supabase.auth.signOut();
