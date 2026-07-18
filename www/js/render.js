@@ -17,6 +17,7 @@ import { rReport } from "./render/report.js";
 import { rCheckin } from "./render/checkin.js";
 import { rCheckinHistory } from "./render/checkin-history.js";
 import { rChoice } from "./render/choice.js";
+import { dataArgs } from "./util.js";
 
 // ctx carries the bits of runtime context that live outside ST
 // (auth session, the account-deletion confirmation UI state, and the
@@ -26,7 +27,7 @@ export function renderScreen(ctx){
   if (ctx.localOnly && (s === "auth" || s === "account")){
     return '<div style="margin-bottom:1.25rem"><h2 id="scr-h">Account</h2></div>' +
       '<div class="card"><p class="body">Accounts and sync are not set up yet - the app is running in local-only mode and your answers stay on this device. See README.md (Supabase project setup) to enable accounts.</p></div>' +
-      '<div class="nav"><button type="button" class="btn" onclick="IAM.go(\'role\')">&larr; Back</button></div>';
+      '<div class="nav"><button type="button" class="btn" data-action="go" data-args="' + dataArgs(["role"]) + '">&larr; Back</button></div>';
   }
   if (s === "auth") return rAuth(ctx.offlineAllowed);
   if (s === "account") return rAccount(ctx.user, ctx.deleteState);

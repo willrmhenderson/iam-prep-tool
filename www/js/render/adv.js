@@ -1,11 +1,11 @@
-import { esc } from "../util.js";
+import { esc, dataArgs } from "../util.js";
 import { ST } from "../state.js";
 import { sb } from "./shared.js";
 
 export function rAdv(){
   var a = ST.adv, isP = ST.role === "participant";
   function ta(id, k, ph, rows){
-    return '<textarea id="' + id + '" oninput="IAM.setAdv(\'' + k + '\',this.value)" style="min-height:' + (rows || 3) * 27 + 'px" placeholder="' + ph + '">' + esc(a[k]) + '</textarea>';
+    return '<textarea id="' + id + '" data-field="setAdv" data-args="' + dataArgs([k]) + '" style="min-height:' + (rows || 3) * 27 + 'px" placeholder="' + ph + '">' + esc(a[k]) + '</textarea>';
   }
   function lbl(id, text){ return '<label for="' + id + '">' + esc(text) + '</label>'; }
   return sb() + '<div style="margin-bottom:1rem"><h2 id="scr-h">' + (isP ? "Your daily life and advocacy" : "Advocacy and evidence") + '</h2></div>' +
@@ -22,6 +22,6 @@ export function rAdv(){
     lbl("adv-failed", "What has not worked?") + ta("adv-failed", "failed", "Supports that were inadequate or not right.", 2) + '</div>' +
     '<div class="card"><h3 style="margin-bottom:8px">' + (isP ? "Your own words" : "Participant&rsquo;s own statement") + '</h3>' +
     lbl("adv-myword", isP ? "What do you most want the assessor to know?" : "Participant&rsquo;s own statement") + ta("adv-myword", "myword", isP ? "Write in your own words." : "The participant&rsquo;s own words carry significant weight.", 5) + '</div>' +
-    '<div class="nav"><button type="button" class="btn" onclick="IAM.go(\'sups\')">&larr; Back</button>' +
-    '<button type="button" class="btn primary" onclick="IAM.go(\'review\')">Review and generate &rarr;</button></div>';
+    '<div class="nav"><button type="button" class="btn" data-action="go" data-args="' + dataArgs(["sups"]) + '">&larr; Back</button>' +
+    '<button type="button" class="btn primary" data-action="go" data-args="' + dataArgs(["review"]) + '">Review and generate &rarr;</button></div>';
 }

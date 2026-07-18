@@ -38,7 +38,7 @@ export function rConsent(){
     '<li style="font-size:14px;color:#0a5c38;line-height:1.6">You are participating voluntarily and can stop at any time</li>' +
     '<li style="font-size:14px;color:#0a5c38;line-height:1.6">You understand the supervising psychologist retains full clinical accountability</li>' +
     '</ul>' +
-    '<button type="button" class="btn primary" style="width:100%;justify-content:center;padding:14px;font-size:15px;font-weight:600" onclick="IAM.giveConsent()">&#10003; I understand and I agree</button>' +
+    '<button type="button" class="btn primary" style="width:100%;justify-content:center;padding:14px;font-size:15px;font-weight:600" data-action="giveConsent">&#10003; I understand and I agree</button>' +
     '</div>' +
     '<p style="font-size:12px;color:#aaa;text-align:center;margin-top:12px">If you do not wish to proceed, simply close the app.</p>';
 }

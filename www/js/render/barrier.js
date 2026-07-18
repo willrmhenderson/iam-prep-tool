@@ -1,4 +1,4 @@
-import { esc } from "../util.js";
+import { esc, dataArgs } from "../util.js";
 import { BARRIERS } from "../data.js";
 import { sb, progressBar } from "./shared.js";
 
@@ -15,10 +15,10 @@ export function rBarrier(i){
     b.body +
     '</div>' +
     '<div class="nav">' +
-    (i > 0 ? '<button type="button" class="btn" onclick="IAM.go({t:\'b\',i:' + (i - 1) + '})">&larr; Back</button>' :
-             '<button type="button" class="btn" onclick="IAM.go(\'edusheet\')">&larr; Back</button>') +
+    (i > 0 ? '<button type="button" class="btn" data-action="go" data-args="' + dataArgs([{ t: "b", i: i - 1 }]) + '">&larr; Back</button>' :
+             '<button type="button" class="btn" data-action="go" data-args="' + dataArgs(["edusheet"]) + '">&larr; Back</button>') +
     (isLast ?
-      '<button type="button" class="btn primary" onclick="IAM.gd(0)">Begin domain conversation &rarr;</button>' :
-      '<button type="button" class="btn primary" onclick="IAM.go({t:\'b\',i:' + (i + 1) + '})">&rarr; Next barrier</button>') +
+      '<button type="button" class="btn primary" data-action="gd" data-args="' + dataArgs([0]) + '">Begin domain conversation &rarr;</button>' :
+      '<button type="button" class="btn primary" data-action="go" data-args="' + dataArgs([{ t: "b", i: i + 1 }]) + '">&rarr; Next barrier</button>') +
     '</div>';
 }

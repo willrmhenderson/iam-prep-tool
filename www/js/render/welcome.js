@@ -1,4 +1,4 @@
-import { esc } from "../util.js";
+import { esc, dataArgs } from "../util.js";
 import { ST } from "../state.js";
 import { sb } from "./shared.js";
 
@@ -23,6 +23,6 @@ export function rWelcome(){
       '<div class="met"><div class="n">' + comp + '</div><div class="l">Domains done</div></div>' +
       '<div class="met"><div class="n" style="' + (hiCount > 0 ? "color:#8B1A1A" : "") + '">' + hiCount + '</div><div class="l">High/critical</div></div>' +
       '<div class="met"><div class="n">' + ST.sups.length + '</div><div class="l">Support persons</div></div></div></div>' : "") +
-    '<div class="nav"><button type="button" class="btn" onclick="IAM.go(\'role\')">&larr; Back</button>' +
-    '<button type="button" class="btn primary" onclick="IAM.go(' + (isPsy ? "'psych'" : "'part'") + ')">' + (isP ? "Start: your details" : isS ? "Go to participant details" : "Go to psychologist section") + ' &rarr;</button></div>';
+    '<div class="nav"><button type="button" class="btn" data-action="go" data-args="' + dataArgs(["role"]) + '">&larr; Back</button>' +
+    '<button type="button" class="btn primary" data-action="go" data-args="' + dataArgs([isPsy ? "psych" : "part"]) + '">' + (isP ? "Start: your details" : isS ? "Go to participant details" : "Go to psychologist section") + ' &rarr;</button></div>';
 }

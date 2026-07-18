@@ -1,3 +1,4 @@
+import { dataArgs } from "../util.js";
 import { sb } from "./shared.js";
 
 export function rEdusheet(){
@@ -25,8 +26,8 @@ export function rEdusheet(){
     '<p style="font-size:13px;color:#0a5c38;line-height:1.7">As we go through each area of your life, these are the four things I want you to think about. You do not need to remember the questions themselves. I will ask them. Your job is just to answer honestly about your life. What you actually do. What it actually takes. What it actually costs you.</p>' +
     '<p style="font-size:13px;color:#0a5c38;margin-top:8px;font-weight:600">There are no right answers. There are only honest ones.</p>' +
     '</div>' +
-    '<div class="nav"><button type="button" class="btn" onclick="IAM.go(\'brate\')">&larr; Back</button>' +
-    '<button type="button" class="btn primary" onclick="IAM.go({t:\'b\',i:0})">Continue to disclosure barriers &rarr;</button></div>';
+    '<div class="nav"><button type="button" class="btn" data-action="go" data-args="' + dataArgs(["brate"]) + '">&larr; Back</button>' +
+    '<button type="button" class="btn primary" data-action="go" data-args="' + dataArgs([{ t: "b", i: 0 }]) + '">Continue to disclosure barriers &rarr;</button></div>';
 }
 
 function numberedQ(n, title, body){

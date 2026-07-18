@@ -2,7 +2,7 @@
 // delete per entry and a participant-initiated date-range export that
 // reuses the pdf.js delivery pattern. Nothing shares automatically.
 
-import { esc } from "../util.js";
+import { esc, dataArgs } from "../util.js";
 import { ST } from "../state.js";
 import { sb } from "./shared.js";
 
@@ -28,8 +28,8 @@ export function rCheckinHistory(){
       '<span class="muted" style="font-size:0.75rem">' + esc(new Date(c.at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })) + '</span><br>' +
       '<span style="font-size:0.8125rem;color:#555">' + summaryLine(c) + '</span></div>' +
       '<div style="display:flex;gap:4px">' +
-      '<button type="button" class="btn sm" onclick="IAM.editCheckin(\'' + c.id + '\')">Edit</button>' +
-      '<button type="button" class="btn danger sm" onclick="IAM.deleteCheckin(\'' + c.id + '\')">Delete</button>' +
+      '<button type="button" class="btn sm" data-action="editCheckin" data-args="' + dataArgs([c.id]) + '">Edit</button>' +
+      '<button type="button" class="btn danger sm" data-action="deleteCheckin" data-args="' + dataArgs([c.id]) + '">Delete</button>' +
       '</div></div>' +
       (c.note && c.note.trim() ? '<p style="font-size:0.8125rem;color:#444;margin-top:6px;line-height:1.6">' + esc(c.note) + '</p>' : "") +
       '</div>';
@@ -49,12 +49,12 @@ export function rCheckinHistory(){
       '<div><label for="ck-to">To</label><input id="ck-to" type="date"></div></div>' +
       '<p class="muted" style="font-size:0.75rem;margin-top:4px">Leave both blank to include everything.</p>' +
       '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">' +
-      '<button type="button" class="btn primary" onclick="IAM.dlCheckinPDF()">Download PDF summary</button>' +
-      '<button type="button" class="btn" onclick="IAM.dlCheckinText()">Download plain text</button></div>' +
+      '<button type="button" class="btn primary" data-action="dlCheckinPDF">Download PDF summary</button>' +
+      '<button type="button" class="btn" data-action="dlCheckinText">Download plain text</button></div>' +
       '<div id="dmsg" role="status" aria-live="polite" style="font-size:0.75rem;color:#1D9E75;margin-top:8px;display:none"></div>' +
       '</div>' : "") +
     '<div class="nav">' +
-    '<button type="button" class="btn" onclick="IAM.startCheckin()">+ New check-in</button>' +
-    '<button type="button" class="btn" onclick="IAM.go(\'role\')">&larr; Home</button>' +
+    '<button type="button" class="btn" data-action="startCheckin">+ New check-in</button>' +
+    '<button type="button" class="btn" data-action="go" data-args="' + dataArgs(["role"]) + '">&larr; Home</button>' +
     '</div>';
 }

@@ -1,4 +1,4 @@
-import { esc } from "../util.js";
+import { esc, dataArgs } from "../util.js";
 import { ST } from "../state.js";
 import { BDOM } from "../data.js";
 import { sb, progressBar } from "./shared.js";
@@ -27,6 +27,10 @@ function anyStarted(){
   return Object.keys(ST.brate.items).some(function(k){ return ST.brate.items[k] !== undefined && ST.brate.items[k] !== ""; });
 }
 
+function goBtn(cls, step, label){
+  return '<button type="button" class="' + cls + '" data-action="go" data-args="' + dataArgs([step]) + '">' + label + '</button>';
+}
+
 function scaleCard(){
   return '<div class="card card-green" style="margin-bottom:1rem">' +
     '<p style="font-size:0.8125rem;color:#0a5c38;font-weight:600;margin-bottom:6px">Rating scale</p>' +
@@ -49,18 +53,18 @@ export function rBrate(){
     '<div class="card card-blue" style="margin-bottom:1rem"><p style="font-size:0.8125rem;color:#1a4f7a"><strong>Clinician note:</strong> Read each item aloud. The participant responds verbally with a number 0 to 4. Record the rating. Do not discuss ratings. Do not revisit them once recorded. Lock all ratings before proceeding to psychoeducation. The before rating is the uncontaminated baseline. It cannot be changed after locking.</p></div>' : "";
   var started = anyStarted();
   var mainBtn = locked ?
-    '<button type="button" class="btn primary" onclick="IAM.go(\'edusheet\')">Continue &rarr;</button>' :
+    goBtn("btn primary", "edusheet", "Continue &rarr;") :
     started ?
-    '<button type="button" class="btn primary" onclick="IAM.go({t:\'r\',i:' + firstIncompleteIndex() + '})">Continue ratings &rarr;</button>' :
-    '<button type="button" class="btn primary" onclick="IAM.go({t:\'r\',i:0})">Begin ratings &rarr;</button>';
+    goBtn("btn primary", { t: "r", i: firstIncompleteIndex() }, "Continue ratings &rarr;") :
+    goBtn("btn primary", { t: "r", i: 0 }, "Begin ratings &rarr;");
   var reviewLink = (started || locked) ?
-    '<button type="button" class="btn" onclick="IAM.go(\'brate-review\')">' + (locked ? "View all ratings" : "Review progress") + '</button>' : "";
+    goBtn("btn", "brate-review", locked ? "View all ratings" : "Review progress") : "";
   return sb() +
     '<div style="margin-bottom:1rem"><h2 id="scr-h">Before ratings</h2>' +
     '<p class="body">Step 2 of 4 &mdash; Record all ratings before any psychoeducation. Each of the 12 areas is on its own page. Once locked, ratings cannot be changed.</p></div>' +
     clinNote + scaleCard() +
     (locked ? '<div class="card card-green" style="margin-bottom:1rem"><p style="font-size:0.8125rem;color:#0a5c38;font-weight:600">&#10003; Before ratings locked on ' + esc(new Date(ST.brateLockedAt).toLocaleString()) + '</p><p style="font-size:0.75rem;color:#0a5c38;margin-top:4px">These ratings are the baseline. They cannot be changed.</p></div>' : "") +
-    '<div class="nav"><button type="button" class="btn" onclick="IAM.go(\'preq\')">&larr; Back</button>' + reviewLink + mainBtn + '</div>';
+    '<div class="nav">' + goBtn("btn", "preq", "&larr; Back") + reviewLink + mainBtn + '</div>';
 }
 
 // Step 2 of 3: one domain's items per screen (4-5 items each instead
@@ -80,7 +84,7 @@ export function rBrateDomain(i){
       '<label for="' + selId + '" style="flex:1;font-size:0.9375rem;color:#333;margin:0">' + esc(item) + '</label>' +
       (locked ?
         '<span style="font-size:1rem;font-weight:600;color:#1D9E75;min-width:2rem;text-align:center">' + (val !== "" ? val : "&mdash;") + '</span>' :
-        '<select id="' + selId + '" style="width:6rem" onchange="IAM.setBrate(\'' + k + '\',this.value)">' +
+        '<select id="' + selId + '" style="width:6rem" data-onchange="setBrate" data-args="' + dataArgs([k]) + '">' +
         '<option value="">--</option>' +
         [0, 1, 2, 3, 4].map(function(n){ return '<option value="' + n + '"' + (val === n || val === String(n) ? " selected" : "") + '>' + n + '</option>'; }).join("") +
         '</select>') +
@@ -88,9 +92,9 @@ export function rBrateDomain(i){
   }).join("");
   var nextBtn = isLast ?
     (locked ?
-      '<button type="button" class="btn primary" onclick="IAM.go(\'edusheet\')">Continue &rarr;</button>' :
-      '<button type="button" class="btn primary" onclick="IAM.go(\'brate-review\')">Review ratings &rarr;</button>') :
-    '<button type="button" class="btn primary" onclick="IAM.go({t:\'r\',i:' + (i + 1) + '})">Next domain &rarr;</button>';
+      goBtn("btn primary", "edusheet", "Continue &rarr;") :
+      goBtn("btn primary", "brate-review", "Review ratings &rarr;")) :
+    goBtn("btn primary", { t: "r", i: i + 1 }, "Next domain &rarr;");
   return sb() +
     progressBar(i + 1, BDOM.length, "Rating " + (i + 1) + " of " + BDOM.length + ": " + dom.name) +
     clinNote +
@@ -99,8 +103,7 @@ export function rBrateDomain(i){
     itemsHtml +
     '</div>' +
     '<div class="nav">' +
-    (i > 0 ? '<button type="button" class="btn" onclick="IAM.go({t:\'r\',i:' + (i - 1) + '})">&larr; Back</button>' :
-             '<button type="button" class="btn" onclick="IAM.go(\'brate\')">&larr; Back</button>') +
+    (i > 0 ? goBtn("btn", { t: "r", i: i - 1 }, "&larr; Back") : goBtn("btn", "brate", "&larr; Back")) +
     nextBtn +
     '</div>';
 }
@@ -116,14 +119,14 @@ export function rBrateReview(){
     return '<div class="card" style="padding:0.875rem;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;gap:8px">' +
       '<div><strong style="font-size:0.875rem;font-weight:500">' + esc(dom.name) + '</strong><br>' +
       '<span class="tag ' + (complete ? "tg" : "ta") + '">' + done + ' of ' + total + ' rated</span></div>' +
-      '<button type="button" class="btn sm" onclick="IAM.go({t:\'r\',i:' + di + '})">' + (locked ? "View" : "Edit") + '</button>' +
+      goBtn("btn sm", { t: "r", i: di }, locked ? "View" : "Edit") +
       '</div>';
   }).join("");
   var complete = allDone();
   var lockBtn = locked ?
-    '<button type="button" class="btn primary" onclick="IAM.go(\'edusheet\')">Continue &rarr;</button>' :
+    goBtn("btn primary", "edusheet", "Continue &rarr;") :
     complete ?
-    '<button type="button" class="btn primary" style="background:#0a5c38;border-color:#0a5c38" onclick="IAM.lockBrate()">Lock all ratings and continue &rarr;</button>' :
+    '<button type="button" class="btn primary" style="background:#0a5c38;border-color:#0a5c38" data-action="lockBrate">Lock all ratings and continue &rarr;</button>' :
     '<button type="button" class="btn" disabled style="opacity:0.5;cursor:not-allowed">Complete all ratings to continue</button>';
   return sb() +
     '<div style="margin-bottom:1rem"><h2 id="scr-h">' + (locked ? "Your before ratings" : "Review before locking") + '</h2>' +
@@ -131,5 +134,5 @@ export function rBrateReview(){
       "These ratings were locked on " + esc(new Date(ST.brateLockedAt).toLocaleString()) + " and cannot be changed." :
       "Check every domain is rated, then lock. Once locked, ratings cannot be changed.") + '</p></div>' +
     rows +
-    '<div class="nav"><button type="button" class="btn" onclick="IAM.go({t:\'r\',i:' + (BDOM.length - 1) + '})">&larr; Back</button>' + lockBtn + '</div>';
+    '<div class="nav">' + goBtn("btn", { t: "r", i: BDOM.length - 1 }, "&larr; Back") + lockBtn + '</div>';
 }

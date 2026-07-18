@@ -12,8 +12,8 @@ export function sb(){
   return '<div class="sbar">' +
     '<div class="sdot' + (s.dirty ? " u" : "") + '" aria-hidden="true"></div>' +
     '<span id="smsg" role="status" aria-live="polite">' + esc(label) + '</span>' +
-    '<button type="button" class="btn sm" style="margin-left:auto" onclick="IAM.save()">Save</button>' +
-    '<button type="button" class="btn sm" style="background:#fdf3e3;color:#7a4a0a;border-color:#e8b86d" onclick="IAM.doBreak()">Break</button>' +
+    '<button type="button" class="btn sm" style="margin-left:auto" data-action="save">Save</button>' +
+    '<button type="button" class="btn sm" style="background:#fdf3e3;color:#7a4a0a;border-color:#e8b86d" data-action="doBreak">Break</button>' +
     '</div>';
 }
 

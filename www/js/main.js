@@ -1,14 +1,19 @@
-// Bootstrap. Wires every render/*.js screen's inline onclick handlers
-// (kept as plain onclick="IAM.foo(...)" strings, same pattern as the
-// original single-file tool - the lowest-risk way to preserve the
-// original's tested interaction logic through this refactor) to a
-// single window.IAM namespace.
+// Bootstrap. Wires every render/*.js screen's data-action/data-field/
+// data-onchange attributes (see delegate.js) to a single window.IAM
+// namespace, via one set of delegated listeners attached to #root -
+// no per-render re-wiring needed, and no reliance on a relaxed
+// script-src 'unsafe-inline' CSP (see memory note
+// iam-csp-inline-handlers for the history: this app used inline
+// onclick="..." everywhere until 2026-07-18, when that was found to
+// silently break every button in a real browser unless the CSP was
+// loosened; this delegation rewrite lets the stricter CSP come back).
 
 import { Network } from "@capacitor/network";
 import { DOM } from "./data.js";
 import { ST, touch, save, loadInitial, resetAll, nextSid, onStatus, trySync, getPendingChoice, establishSnapshotBaseline } from "./state.js";
 import { renderScreen } from "./render.js";
 import { focusScreenHeading } from "./render/shared.js";
+import { initDelegation } from "./delegate.js";
 import { giveConsentAction } from "./render/consent.js";
 import * as authUi from "./render/auth.js";
 import * as authApi from "./auth.js";
@@ -60,7 +65,7 @@ function doBreak(){
     '<div style="font-size:52px;margin-bottom:1rem" aria-hidden="true">&#9749;</div>' +
     '<h2 id="scr-h" style="margin-bottom:10px;color:#2d4a1e">Good work. Take a break.</h2>' +
     '<p class="body" style="max-width:360px;margin:0 auto 1.5rem">Everything is saved. Come back when you are ready.</p>' +
-    '<button type="button" class="btn primary" onclick="IAM.refresh()">Continue &rarr;</button></div>';
+    '<button type="button" class="btn primary" data-action="refresh">Continue &rarr;</button></div>';
   focusScreenHeading();
 }
 
@@ -143,6 +148,7 @@ async function signOut(){
 }
 
 function setDeleteConfirmText(v){ deleteState.confirmText = v; deleteState.error = ""; refresh(); }
+function backFromAccount(){ go(ST.role ? "welcome" : "role"); }
 
 async function confirmDeleteAccount(){
   if (deleteState.confirmText !== "DELETE") return;
@@ -173,6 +179,11 @@ async function keepLocal(){
   await save();
   refresh();
 }
+
+// ---- participant details ----
+// (part.js originally mutated IAM.ST.p.<field> directly inline -
+// replaced with a real setter now that inline script isn't an option)
+function setPart(key, val){ ST.p[key] = val; touch(); }
 
 // ---- pre-questions ----
 function setPreq(key, val){
@@ -276,13 +287,28 @@ function dlCheckinTextUI(){
 function setAdv(key, val){ ST.adv[key] = val; touch(); }
 function setPsych(key, val){ ST.psych[key] = val; touch(); }
 
+// ---- small DOM-only handlers that used to be inline script ----
+// (auth.js's "show my password" checkbox, report.js's hidden file
+// input trigger for data import) - now real handlers instead of
+// literal JS sitting in an HTML attribute.
+function toggleShowPassword(checked){
+  var el = document.getElementById("auth-pass");
+  if (el) el.type = checked ? "text" : "password";
+}
+function triggerFileImport(){
+  var el = document.getElementById("jimp");
+  if (el) el.click();
+}
+function printReport(){ window.print(); }
+
 // ---- window.IAM namespace ----
 const IAM = {
   touch: touch, save: save, refresh: refresh, go: go, gd: gd, doBreak: doBreak,
   giveConsent: giveConsent, setRole: setRole, continueFromRole: continueFromRole, confirmStartFresh: confirmStartFresh,
   keepCloud: keepCloud, keepLocal: keepLocal,
   submitAuth: submitAuth, forgotPassword: forgotPassword, setAuthMode: setAuthMode, goOffline: goOffline,
-  signOut: signOut, setDeleteConfirmText: setDeleteConfirmText, confirmDeleteAccount: confirmDeleteAccount,
+  signOut: signOut, setDeleteConfirmText: setDeleteConfirmText, confirmDeleteAccount: confirmDeleteAccount, backFromAccount: backFromAccount,
+  setPart: setPart,
   setPreq: setPreq, setBrate: setBrate, lockBrate: lockBrate,
   setDomTab: setDomTab, setDom: setDom, setDomFlag: setDomFlag, setDomPFlag: setDomPFlag,
   toggleExamples: toggleExamplesUI,
@@ -293,10 +319,12 @@ const IAM = {
   setCheckin: setCheckin, setCheckinNote: setCheckinNote, saveCheckin: saveCheckin,
   deleteCheckin: deleteCheckin, focusRoleSection: focusRoleSection,
   dlCheckinPDF: dlCheckinPDFUI, dlCheckinText: dlCheckinTextUI,
-  dlPDF: dlPDF, dlText: dlText, expJSON: expJSON, impJSON: impJSON
+  dlPDF: dlPDF, dlText: dlText, expJSON: expJSON, impJSON: impJSON,
+  toggleShowPassword: toggleShowPassword, triggerFileImport: triggerFileImport, printReport: printReport
 };
 Object.defineProperty(IAM, "ST", { get: function(){ return ST; } });
 window.IAM = IAM;
+initDelegation(document.getElementById("root"), IAM);
 
 // Live-patches the save-status bar without a full re-render, so
 // typing in a field never loses cursor focus, while save failures are

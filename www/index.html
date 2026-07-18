@@ -6,24 +6,23 @@
 <title>I-AM Preparation Tool</title>
 <!--
   Content-Security-Policy as defence in depth: it stops any
-  foreign-origin script or foreign-origin network call from ever
-  running, so a compromised or mistakenly-added third-party script
-  cannot reach out anywhere. connect-src is scoped to Supabase so the
-  app cannot be repointed at another host.
+  foreign-origin or injected script from ever running, and any
+  foreign-origin network call, so a compromised or mistakenly-added
+  third-party script cannot reach out anywhere. connect-src is scoped
+  to Supabase so the app cannot be repointed at another host.
 
-  script-src includes 'unsafe-inline' because every screen's buttons
-  and inputs are wired with plain onclick="IAM.foo()" attributes (the
-  lowest-risk way to preserve the original tool's tested interaction
-  logic through this rebuild - see main.js). A stricter script-src
-  without 'unsafe-inline' silently blocks every one of those handlers
-  in a real, spec-compliant browser (confirmed live: buttons looked
-  present but did nothing on tap) - it is not optional here without a
-  larger rewrite to addEventListener-based wiring. The real defence
-  against injected markup is esc() in util.js, used at every point
-  user text is inserted into a screen - that is what actually stops
-  a malicious value from becoming executable HTML in the first place.
+  script-src has NO 'unsafe-inline' - every screen's buttons and
+  inputs are wired via data-action/data-field/data-onchange attributes
+  read by a single delegated listener (see delegate.js), not inline
+  onclick="..." attributes. That rewrite (2026-07-18) is what makes
+  the stricter policy possible: an earlier version relied on inline
+  handlers everywhere and needed 'unsafe-inline' to work at all, which
+  is weaker than this. The other real defence, unchanged either way,
+  is esc() in util.js, used at every point user text is inserted into
+  a screen - that is what actually stops a malicious value from
+  becoming executable HTML in the first place.
 -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://*.supabase.co wss://*.supabase.co; base-uri 'none'; form-action 'none';">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://*.supabase.co wss://*.supabase.co; base-uri 'none'; form-action 'none';">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="I-AM">

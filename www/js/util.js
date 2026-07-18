@@ -29,3 +29,15 @@ export function uuid(){
 }
 
 export function nowIso(){return new Date().toISOString();}
+
+// Builds a safe data-args="..." attribute value: JSON-encodes the
+// argument list, then HTML-escapes it so it can sit inside a
+// double-quoted attribute (the delegated event dispatcher in
+// delegate.js parses it back out with JSON.parse). Used instead of
+// baking arguments into onclick="..." strings, which is what the app
+// used everywhere until 2026-07-18 - inline handlers like that only
+// work with a relaxed script-src 'unsafe-inline' Content-Security-
+// Policy, and this dispatcher pattern lets that be tightened back up.
+export function dataArgs(args){
+  return esc(JSON.stringify(args || []));
+}

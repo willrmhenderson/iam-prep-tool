@@ -2,7 +2,7 @@
 // Not gated by assessment progress - reachable from the home screen
 // at any time, in any state.
 
-import { esc, uuid } from "../util.js";
+import { esc, uuid, dataArgs } from "../util.js";
 import { ST } from "../state.js";
 import { sb } from "./shared.js";
 import { checkCrisisLanguage, safetyCardHtml } from "../safety.js";
@@ -40,7 +40,7 @@ function ratingRow(key, label, endLow, endHigh){
   var val = draft[key];
   var btns = [0, 1, 2, 3, 4].map(function(n){
     var active = val === n;
-    return '<button type="button" class="tbtn' + (active ? " act" : "") + '" aria-pressed="' + active + '" onclick="IAM.setCheckin(\'' + key + '\',' + n + ')">' + n + '</button>';
+    return '<button type="button" class="tbtn' + (active ? " act" : "") + '" aria-pressed="' + active + '" data-action="setCheckin" data-args="' + dataArgs([key, n]) + '">' + n + '</button>';
   }).join("");
   return '<div style="margin-bottom:14px">' +
     '<p id="ck-' + key + '-lbl" style="font-size:0.9375rem;color:#1a1a1a;margin-bottom:6px">' + esc(label) + '</p>' +
@@ -66,7 +66,7 @@ export function rCheckin(){
     '<div class="sec" style="margin-top:0">Name</div>' +
     ratingRow("mood", "How are you feeling?", "Very low", "Really good") +
     '<label for="ck-moodword" style="margin-top:-4px">A word for it, if you have one (optional)</label>' +
-    '<input id="ck-moodword" type="text" maxlength="60" value="' + esc(draft.moodWord) + '" oninput="IAM.setCheckin(\'moodWord\',this.value)" placeholder="e.g. flat, hopeful, wrung out">' +
+    '<input id="ck-moodword" type="text" maxlength="60" value="' + esc(draft.moodWord) + '" data-field="setCheckin" data-args="' + dataArgs(["moodWord"]) + '" placeholder="e.g. flat, hopeful, wrung out">' +
     '<div style="height:14px"></div>' +
     ratingRow("fatigue", "How tired are you?", "Not tired", "Exhausted") +
     ratingRow("pain", "How much pain today?", "No pain", "Severe") +
@@ -76,13 +76,13 @@ export function rCheckin(){
     '<div class="card">' +
     '<div class="sec" style="margin-top:0">Note</div>' +
     '<label for="ck-note">What&rsquo;s going on for you today, in your own words?</label>' +
-    '<textarea id="ck-note" oninput="IAM.setCheckinNote(this.value)" placeholder="Anything or nothing. This is your space.">' + esc(draft.note) + '</textarea>' +
+    '<textarea id="ck-note" data-field="setCheckinNote" placeholder="Anything or nothing. This is your space.">' + esc(draft.note) + '</textarea>' +
     '<div id="safety-card">' + safetyCardHtml(check.level, supFirstNames()) + '</div>' +
     '</div>' +
 
     '<div class="nav">' +
-    '<button type="button" class="btn" onclick="IAM.leaveCheckin()">&larr; Back</button>' +
-    '<button type="button" class="btn primary" onclick="IAM.saveCheckin()">' + (editingId ? "Update entry" : "Save check-in") + '</button>' +
-    '<button type="button" class="btn" onclick="IAM.go(\'checkin-history\')">Past check-ins</button>' +
+    '<button type="button" class="btn" data-action="leaveCheckin">&larr; Back</button>' +
+    '<button type="button" class="btn primary" data-action="saveCheckin">' + (editingId ? "Update entry" : "Save check-in") + '</button>' +
+    '<button type="button" class="btn" data-action="go" data-args="' + dataArgs(["checkin-history"]) + '">Past check-ins</button>' +
     '</div>';
 }

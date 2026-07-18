@@ -1,4 +1,4 @@
-import { esc } from "../util.js";
+import { esc, dataArgs } from "../util.js";
 import { ST } from "../state.js";
 import { DOM } from "../data.js";
 
@@ -20,7 +20,7 @@ export function rReview(){
       return '<div class="card" style="padding:0.875rem;margin-bottom:6px">' +
         '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">' +
         '<strong style="font-size:13px;font-weight:500">' + esc(d.name) + '</strong>' +
-        '<button type="button" class="btn sm" onclick="IAM.gd(' + i + ')">Edit</button></div>' +
+        '<button type="button" class="btn sm" data-action="gd" data-args="' + dataArgs([i]) + '">Edit</button></div>' +
         (has ? '<p style="margin:4px 0 6px;font-size:13px;color:#555">' + esc(s.gs.substring(0, 100)) + (s.gs.length > 100 ? "..." : "") + '</p>' +
         (s.freq ? '<span class="tag tg">' + esc(s.freq) + '</span>' : "") +
         (s.stype ? '<span class="tag tb">' + esc(s.stype) + '</span>' : "") +
@@ -30,6 +30,6 @@ export function rReview(){
         '<p style="font-size:13px;color:#bbb;margin-top:4px;font-style:italic">Not recorded</p>') + '</div>';
     }).join("") +
     '<div class="nav" style="margin-top:1.5rem">' +
-    '<button type="button" class="btn" onclick="IAM.go(\'adv\')">&larr; Back</button>' +
-    '<button type="button" class="btn primary" onclick="IAM.go(\'report\')">Generate report</button></div>';
+    '<button type="button" class="btn" data-action="go" data-args="' + dataArgs(["adv"]) + '">&larr; Back</button>' +
+    '<button type="button" class="btn primary" data-action="go" data-args="' + dataArgs(["report"]) + '">Generate report</button></div>';
 }
