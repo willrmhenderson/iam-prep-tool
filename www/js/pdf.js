@@ -210,6 +210,7 @@ function checkinRangeLabel(fromStr, toStr){
 }
 
 function ratingText(c){
+  if (c.withdrawnAt) return "Entry withdrawn - words and ratings permanently removed by the participant";
   var parts = [];
   if (c.mood !== null && c.mood !== undefined) parts.push("Feeling " + c.mood + (c.moodWord ? " (" + c.moodWord + ")" : ""));
   if (c.fatigue !== null && c.fatigue !== undefined) parts.push("Tired " + c.fatigue);
@@ -218,11 +219,80 @@ function ratingText(c){
   return parts.length ? parts.join(", ") : "No ratings recorded";
 }
 
+// Days between the participant's claimed writing date (at) and the
+// server's non-forgeable receipt time (receivedAt). Small gaps are
+// normal (writing offline, syncing later); a large gap is worth
+// showing explicitly rather than silently picking one date.
+function DIVERGE_DAYS_MS(){ return 1000 * 60 * 60 * 48; }
+
+function dateLabel(c){
+  var written = new Date(c.at).toLocaleDateString();
+  if (!c.receivedAt) return written + " (not yet backed up)";
+  var recMs = new Date(c.receivedAt).getTime(), atMs = new Date(c.at).getTime();
+  if (atMs > recMs) return written + " (claimed - backed up " + new Date(c.receivedAt).toLocaleDateString() + ", BEFORE the claimed date - flagged)";
+  if (recMs - atMs > DIVERGE_DAYS_MS()) return "Written " + written + " (backed up " + new Date(c.receivedAt).toLocaleDateString() + ")";
+  return written;
+}
+
+// An entry that has been corrected is superseded by the entry that
+// corrects it - superseded originals are excluded from what's shown
+// (the correction replaces them), but always counted in the
+// attestation so nothing is silently dropped from "N entries, all
+// included".
+function supersededIds(){
+  var s = {};
+  ST.checkins.forEach(function(c){ if (c.supersedesId) s[String(c.supersedesId)] = true; });
+  return s;
+}
+
+// Builds the completeness attestation for a date-range export: what's
+// shown, what's been corrected or withdrawn, and anything that can't
+// yet be vouched for because it hasn't reached the server. This is
+// the honest core of the check-in export - it must never overstate
+// what the record can prove.
+function checkinAttestation(rangeEntries){
+  var sup = supersededIds();
+  var visible = rangeEntries.filter(function(c){ return !sup[String(c.id)]; })
+    .sort(function(a, b){ return new Date(a.at) - new Date(b.at); });
+  var correctedCount = rangeEntries.filter(function(c){ return sup[String(c.id)]; }).length;
+  var withdrawnCount = visible.filter(function(c){ return c.withdrawnAt; }).length;
+  var unsyncedCount = visible.filter(function(c){ return !c.seq; }).length;
+  var futureFlagged = visible.filter(function(c){
+    return c.receivedAt && new Date(c.at).getTime() > new Date(c.receivedAt).getTime();
+  }).length;
+  var recordStart = null;
+  ST.checkins.forEach(function(c){
+    var t = c.receivedAt || c.at;
+    if (!recordStart || new Date(t) < new Date(recordStart)) recordStart = t;
+  });
+  return {
+    visible: visible, total: visible.length, correctedCount: correctedCount,
+    withdrawnCount: withdrawnCount, unsyncedCount: unsyncedCount,
+    futureFlagged: futureFlagged, recordStart: recordStart
+  };
+}
+
+function attestationLines(att){
+  var lines = [];
+  lines.push(att.recordStart
+    ? "This record began " + new Date(att.recordStart).toLocaleDateString() + "."
+    : "This record has no entries yet.");
+  lines.push(att.total + (att.total === 1 ? " entry falls" : " entries fall") + " in this period, and all " + att.total + " " + (att.total === 1 ? "is" : "are") + " included below.");
+  lines.push("Entries cannot be edited once backed up to the server - only a correction or a withdrawal can follow, and both are shown here, never hidden.");
+  if (att.correctedCount) lines.push(att.correctedCount + " " + (att.correctedCount === 1 ? "entry was" : "entries were") + " corrected after being written - the corrected version is shown below; the original is kept, unedited, in the account record.");
+  if (att.withdrawnCount) lines.push(att.withdrawnCount + " " + (att.withdrawnCount === 1 ? "entry was" : "entries were") + " later withdrawn by the participant - the fact of the entry remains below, but its words were permanently removed.");
+  if (att.unsyncedCount) lines.push(att.unsyncedCount + " " + (att.unsyncedCount === 1 ? "entry has" : "entries have") + " not yet been backed up to the secure server, so " + (att.unsyncedCount === 1 ? "it cannot" : "they cannot") + " yet be verified as unedited.");
+  if (att.futureFlagged) lines.push("Note: " + att.futureFlagged + " " + (att.futureFlagged === 1 ? "entry claims" : "entries claim") + " a writing date after the date it was actually backed up - flagged above, not hidden.");
+  return lines;
+}
+
 // Check-in diary summary. Same structure and delivery as the main
 // report: ratings shown plainly, then every note in full, verbatim,
 // in the participant's own words. No interpretation, no commentary.
 export async function dlCheckinPDF(fromStr, toStr){
-  var entries = filterCheckins(fromStr, toStr);
+  var rangeEntries = filterCheckins(fromStr, toStr);
+  var att = checkinAttestation(rangeEntries);
+  var entries = att.visible;
   var jsPDF = window.jspdf.jsPDF;
   var doc = new jsPDF({ unit: "mm", format: "a4" });
   var W = 210, ML = 15, MR = 15, TW = W - ML - MR, y = 18;
@@ -251,11 +321,14 @@ export async function dlCheckinPDF(fromStr, toStr){
   wr("Participant: " + (ST.p.name || "Not stated"), 10, true);
   wr("Period: " + checkinRangeLabel(fromStr, toStr) + "  |  Entries: " + entries.length, 9, false);
 
+  h1("This record's completeness");
+  attestationLines(att).forEach(function(t){ wr(t, 8.5, false, 60, 60, 60); });
+
   h1("Ratings");
   wr("Scales: Feeling 0 very low - 4 really good. Tired 0 not tired - 4 exhausted. Pain 0 none - 4 severe. Foggy 0 clear - 4 very foggy.", 8, false, 100, 100, 100);
   gap(2);
   entries.forEach(function(c){
-    wr(new Date(c.at).toLocaleDateString() + " " + new Date(c.at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) + "  -  " + ratingText(c), 9, false);
+    wr(dateLabel(c) + " " + new Date(c.at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) + "  -  " + ratingText(c), 9, false);
   });
 
   var noted = entries.filter(function(c){ return c.note && c.note.trim(); });
@@ -263,7 +336,7 @@ export async function dlCheckinPDF(fromStr, toStr){
     h1("Notes, in the participant's own words");
     noted.forEach(function(c){
       gap(2);
-      wr(new Date(c.at).toLocaleDateString(), 9, true);
+      wr(dateLabel(c), 9, true);
       wr(c.note, 9, false, 60, 60, 60);
     });
   }
@@ -279,7 +352,9 @@ export async function dlCheckinPDF(fromStr, toStr){
 }
 
 export async function dlCheckinText(fromStr, toStr){
-  var entries = filterCheckins(fromStr, toStr);
+  var rangeEntries = filterCheckins(fromStr, toStr);
+  var att = checkinAttestation(rangeEntries);
+  var entries = att.visible;
   var lines = [];
   function line(t){ lines.push(t || ""); }
   line("DAILY CHECK-IN SUMMARY");
@@ -289,10 +364,13 @@ export async function dlCheckinText(fromStr, toStr){
   line("Participant: " + (ST.p.name || "Not stated"));
   line("Period: " + checkinRangeLabel(fromStr, toStr) + " | Entries: " + entries.length);
   line("");
+  line("THIS RECORD'S COMPLETENESS");
+  attestationLines(att).forEach(line);
+  line("");
   line("RATINGS");
   line("Scales: Feeling 0 very low - 4 really good. Tired 0 not tired - 4 exhausted. Pain 0 none - 4 severe. Foggy 0 clear - 4 very foggy.");
   entries.forEach(function(c){
-    line(new Date(c.at).toLocaleDateString() + " " + new Date(c.at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) + " - " + ratingText(c));
+    line(dateLabel(c) + " " + new Date(c.at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) + " - " + ratingText(c));
   });
   var noted = entries.filter(function(c){ return c.note && c.note.trim(); });
   if (noted.length){
@@ -300,7 +378,7 @@ export async function dlCheckinText(fromStr, toStr){
     line("NOTES, IN THE PARTICIPANT'S OWN WORDS");
     noted.forEach(function(c){
       line("");
-      line(new Date(c.at).toLocaleDateString() + ":");
+      line(dateLabel(c) + ":");
       line(c.note);
     });
   }
