@@ -22,7 +22,13 @@ import { dlCheckinPDF as pdfCheckin, dlCheckinText as txtCheckin } from "./pdf.j
 
 let session = null;
 let deleteState = { confirmText: "", busy: false, error: "" };
+let offlineAllowedFlag = false;
+let offlineGuest = false;
 const localOnly = !isConfigured();
+
+async function refreshOfflineAllowed(){
+  try{ offlineAllowedFlag = await authApi.offlineAllowed(); }catch(e){ offlineAllowedFlag = false; }
+}
 
 function ctx(){
   var hasSaved = !!ST.savedAt && ((ST.p && ST.p.name) || ST.d.some(function(d){ return d.gs; }));
@@ -34,7 +40,9 @@ function ctx(){
     hasSaved: hasSaved,
     savedLabel: (ST.p && ST.p.name) || "Previous assessment",
     savedDate: ST.savedAt ? new Date(ST.savedAt).toLocaleDateString() : "",
-    choice: getPendingChoice()
+    choice: getPendingChoice(),
+    offlineAllowed: offlineAllowedFlag,
+    offlineGuest: offlineGuest
   };
 }
 
@@ -95,7 +103,7 @@ async function submitAuth(){
     }
   }catch(e){
     authUi.setAuthBusy(false);
-    authUi.setAuthMsg((e && e.message) || "Something went wrong. Please try again.");
+    authUi.setAuthMsg(authApi.friendlyAuthError(e));
     refresh();
     return;
   }
@@ -111,15 +119,26 @@ async function forgotPassword(){
     await authApi.requestPasswordReset(email);
     authUi.setAuthMsg("If that address has an account, a password reset email has been sent.");
   }catch(e){
-    authUi.setAuthMsg("Could not send a reset email right now.");
+    authUi.setAuthMsg(authApi.friendlyAuthError(e));
   }
   refresh();
 }
 
 function setAuthMode(m){ authUi.setAuthMode(m); refresh(); }
 
+// Lets a device that has synced with an account before keep working
+// from its last-saved answers when there is no internet, rather than
+// stranding the participant on a sign-in screen they can't complete
+// offline anyway. Real sync resumes automatically once online + signed in.
+function goOffline(){
+  offlineGuest = true;
+  refresh();
+}
+
 async function signOut(){
+  offlineGuest = false;
   await authApi.signOut();
+  await refreshOfflineAllowed();
   // onAuthStateChange redraws to the sign-in screen.
 }
 
@@ -262,7 +281,7 @@ const IAM = {
   touch: touch, save: save, refresh: refresh, go: go, gd: gd, doBreak: doBreak,
   giveConsent: giveConsent, setRole: setRole, continueFromRole: continueFromRole, confirmStartFresh: confirmStartFresh,
   keepCloud: keepCloud, keepLocal: keepLocal,
-  submitAuth: submitAuth, forgotPassword: forgotPassword, setAuthMode: setAuthMode,
+  submitAuth: submitAuth, forgotPassword: forgotPassword, setAuthMode: setAuthMode, goOffline: goOffline,
   signOut: signOut, setDeleteConfirmText: setDeleteConfirmText, confirmDeleteAccount: confirmDeleteAccount,
   setPreq: setPreq, setBrate: setBrate, lockBrate: lockBrate,
   setDomTab: setDomTab, setDom: setDom, setDomFlag: setDomFlag, setDomPFlag: setDomPFlag,
@@ -303,10 +322,12 @@ async function bootstrap(){
     return;
   }
   session = await authApi.getSession();
+  await refreshOfflineAllowed();
   authApi.onAuthChange(function(event, newSession){
     session = newSession;
     if (newSession){
-      loadInitial().then(draw);
+      offlineGuest = false;
+      loadInitial().then(function(){ refreshOfflineAllowed().then(draw); });
     } else {
       draw();
     }

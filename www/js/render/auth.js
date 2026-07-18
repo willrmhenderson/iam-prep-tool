@@ -8,7 +8,14 @@ export function setAuthMode(m){ authMode = m; authMsg = ""; }
 export function setAuthMsg(m){ authMsg = m; }
 export function setAuthBusy(b){ authBusy = b; }
 
-export function rAuth(){
+function pwField(){
+  return '<label for="auth-pass">Password</label>' +
+    '<input id="auth-pass" type="password" autocomplete="' + (authMode === "signin" ? "current-password" : "new-password") + '" placeholder="At least 8 characters">' +
+    '<label style="display:flex;align-items:center;gap:8px;margin-top:6px;font-weight:normal;font-size:0.8125rem;color:#555">' +
+    '<input type="checkbox" style="width:auto" onchange="document.getElementById(\'auth-pass\').type=this.checked?\'text\':\'password\'"> Show my password</label>';
+}
+
+export function rAuth(offlineAllowed){
   var isSignIn = authMode === "signin";
   return '<div style="margin-bottom:1.25rem">' +
     '<h2 id="scr-h">' + (isSignIn ? "Sign in" : "Create your account") + '</h2>' +
@@ -19,8 +26,7 @@ export function rAuth(){
     '<div class="card">' +
     '<label for="auth-email">Email address</label>' +
     '<input id="auth-email" type="text" inputmode="email" autocomplete="email" autocapitalize="off" placeholder="you@example.com">' +
-    '<label for="auth-pass">Password</label>' +
-    '<input id="auth-pass" type="password" autocomplete="' + (isSignIn ? "current-password" : "new-password") + '" placeholder="At least 8 characters">' +
+    pwField() +
     '<button type="button" class="btn primary" style="width:100%;justify-content:center;margin-top:12px;padding:12px" ' +
       (authBusy ? "disabled" : "") + ' onclick="IAM.submitAuth()">' +
       (authBusy ? "Please wait..." : (isSignIn ? "Sign in" : "Create account")) + '</button>' +
@@ -30,6 +36,9 @@ export function rAuth(){
       (isSignIn ? "New here? " : "Already have an account? ") +
       '<button type="button" class="btn sm" onclick="IAM.setAuthMode(\'' + (isSignIn ? "signup" : "signin") + '\')">' +
       (isSignIn ? "Create an account" : "Sign in") + '</button></p>' +
+    (isSignIn && offlineAllowed ?
+      '<div class="card card-blue"><p class="body" style="margin-bottom:8px">No internet right now? This device has signed in before, so you can keep working on your last-saved answers - they will sync once you are back online and signed in.</p>' +
+      '<button type="button" class="btn" style="width:100%;justify-content:center" onclick="IAM.goOffline()">Keep working offline</button></div>' : "") +
     '<p style="font-size:12px;color:#aaa;text-align:center;margin-top:1rem">Your data is encrypted on this device and synced to a Supabase database hosted in Sydney, Australia. Nobody else can see it.</p>';
 }
 

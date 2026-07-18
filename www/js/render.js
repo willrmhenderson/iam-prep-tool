@@ -28,11 +28,15 @@ export function renderScreen(ctx){
       '<div class="card"><p class="body">Accounts and sync are not set up yet - the app is running in local-only mode and your answers stay on this device. See README.md (Supabase project setup) to enable accounts.</p></div>' +
       '<div class="nav"><button type="button" class="btn" onclick="IAM.go(\'role\')">&larr; Back</button></div>';
   }
-  if (s === "auth") return rAuth();
+  if (s === "auth") return rAuth(ctx.offlineAllowed);
   if (s === "account") return rAccount(ctx.user, ctx.deleteState);
   // localOnly = Supabase not configured yet (see config.js). The app
   // runs without accounts or sync so the UI can be tested locally.
-  if (!ctx.session && !ctx.localOnly) return rAuth();
+  // offlineGuest = participant chose "keep working offline" on a
+  // device that has synced with an account before (see auth.js
+  // offlineAllowed()) - lets them keep using their last-saved answers
+  // without a live session until connectivity and a real login return.
+  if (!ctx.session && !ctx.localOnly && !ctx.offlineGuest) return rAuth(ctx.offlineAllowed);
   // Shown ahead of every other screen, regardless of step, until the
   // participant resolves which set of answers to keep - see supabase.js.
   if (ctx.choice) return rChoice(ctx.choice);
