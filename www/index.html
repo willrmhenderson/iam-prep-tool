@@ -5,12 +5,25 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>I-AM Preparation Tool</title>
 <!--
-  Content-Security-Policy as defence in depth: even if a future edit
-  ever missed the esc() escaping helper somewhere, this stops an
-  injected <script> or a foreign-origin script from running. connect-src
-  is scoped to Supabase so the app cannot be repointed at another host.
+  Content-Security-Policy as defence in depth: it stops any
+  foreign-origin script or foreign-origin network call from ever
+  running, so a compromised or mistakenly-added third-party script
+  cannot reach out anywhere. connect-src is scoped to Supabase so the
+  app cannot be repointed at another host.
+
+  script-src includes 'unsafe-inline' because every screen's buttons
+  and inputs are wired with plain onclick="IAM.foo()" attributes (the
+  lowest-risk way to preserve the original tool's tested interaction
+  logic through this rebuild - see main.js). A stricter script-src
+  without 'unsafe-inline' silently blocks every one of those handlers
+  in a real, spec-compliant browser (confirmed live: buttons looked
+  present but did nothing on tap) - it is not optional here without a
+  larger rewrite to addEventListener-based wiring. The real defence
+  against injected markup is esc() in util.js, used at every point
+  user text is inserted into a screen - that is what actually stops
+  a malicious value from becoming executable HTML in the first place.
 -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://*.supabase.co wss://*.supabase.co; base-uri 'none'; form-action 'none';">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://*.supabase.co wss://*.supabase.co; base-uri 'none'; form-action 'none';">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="I-AM">
