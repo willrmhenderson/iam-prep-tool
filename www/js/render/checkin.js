@@ -7,26 +7,48 @@ import { ST } from "../state.js";
 import { sb } from "./shared.js";
 import { checkCrisisLanguage, safetyCardHtml } from "../safety.js";
 
-// Draft being edited. When editingId is set we are updating an
-// existing entry in place; otherwise saving appends a new one.
+// Draft being edited. Three modes:
+//   new        - editingId null, correcting false: saving appends
+//   in-place   - editingId set: the entry has never been backed up
+//                (no server seq), so editing it directly is honest -
+//                the record's guarantees start at receipt
+//   correction - correcting true: the entry HAS been backed up, so it
+//                can never change; saving appends a new entry that
+//                points at the original via supersedesId. Both stay
+//                in the record.
 var draft = null;
 var editingId = null;
+var correcting = false;
 
 export function startDraft(entryId){
   if (entryId){
     var existing = ST.checkins.find(function(c){ return c.id === entryId; });
-    if (existing){
+    if (existing && !existing.withdrawnAt){
       draft = JSON.parse(JSON.stringify(existing));
-      editingId = entryId;
+      if (existing.seq){
+        // Receipted: build a correction. Same claimed day (at), fresh
+        // identity, no inherited chain fields - the server assigns
+        // those when the correction is received.
+        draft.id = uuid();
+        draft.supersedesId = String(existing.id);
+        delete draft.seq; delete draft.receivedAt; delete draft.entryHash;
+        editingId = null;
+        correcting = true;
+      } else {
+        editingId = entryId;
+        correcting = false;
+      }
       return;
     }
   }
   draft = { id: uuid(), at: new Date().toISOString(), mood: null, moodWord: "", fatigue: null, pain: null, clarity: null, note: "" };
   editingId = null;
+  correcting = false;
 }
 
 export function getDraft(){ return draft; }
 export function isEditing(){ return editingId !== null; }
+export function isCorrecting(){ return correcting; }
 
 export function setDraftField(key, val){ if (draft) draft[key] = val; }
 
@@ -53,8 +75,9 @@ export function rCheckin(){
   if (!draft) startDraft(null);
   var check = checkCrisisLanguage(draft.note);
   return sb() +
-    '<div style="margin-bottom:1rem"><h2 id="scr-h">' + (editingId ? "Edit check-in" : "Daily check-in") + '</h2>' +
+    '<div style="margin-bottom:1rem"><h2 id="scr-h">' + (editingId || correcting ? "Edit check-in" : "Daily check-in") + '</h2>' +
     (editingId ? '<p class="body">Editing your entry from ' + esc(new Date(draft.at).toLocaleString()) + '. Saving updates it in place.</p>' : "") +
+    (correcting ? '<p class="body">This entry from ' + esc(new Date(draft.at).toLocaleDateString()) + ' has already been backed up, so it can&rsquo;t be changed. Saving writes a correction &mdash; the original stays in your record, marked as corrected.</p>' : "") +
     '</div>' +
 
     '<div class="card card-green">' +
@@ -82,7 +105,7 @@ export function rCheckin(){
 
     '<div class="nav">' +
     '<button type="button" class="btn" data-action="leaveCheckin">&larr; Back</button>' +
-    '<button type="button" class="btn primary" data-action="saveCheckin">' + (editingId ? "Update entry" : "Save check-in") + '</button>' +
+    '<button type="button" class="btn primary" data-action="saveCheckin">' + (editingId ? "Update entry" : (correcting ? "Save correction" : "Save check-in")) + '</button>' +
     '<button type="button" class="btn" data-action="go" data-args="' + dataArgs(["checkin-history"]) + '">Past check-ins</button>' +
     '</div>';
 }

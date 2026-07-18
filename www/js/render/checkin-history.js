@@ -20,16 +20,33 @@ function summaryLine(c){
 }
 
 export function rCheckinHistory(){
-  var entries = ST.checkins.slice().sort(function(a, b){ return new Date(b.at) - new Date(a.at); });
+  // Corrections collapse: an entry that has been superseded by a
+  // correction is hidden from the list (it stays in the record and in
+  // exports); the correction that replaced it carries an "edited"
+  // note. Withdrawn entries keep their place with the words erased.
+  var superseded = {};
+  ST.checkins.forEach(function(c){ if (c.supersedesId) superseded[String(c.supersedesId)] = true; });
+  var entries = ST.checkins
+    .filter(function(c){ return !superseded[String(c.id)]; })
+    .sort(function(a, b){ return new Date(b.at) - new Date(a.at); });
   var list = entries.length ? entries.map(function(c){
+    if (c.withdrawnAt){
+      return '<div class="card" style="padding:0.875rem;margin-bottom:8px;opacity:0.75">' +
+        '<strong style="font-size:0.875rem;font-weight:600">' + esc(new Date(c.at).toLocaleDateString()) + '</strong><br>' +
+        '<span class="muted" style="font-size:0.8125rem;font-style:italic">Entry withdrawn &mdash; the words were erased on ' + esc(new Date(c.withdrawnAt).toLocaleDateString()) + '. The record keeps its place.</span>' +
+        '</div>';
+    }
+    var badges = "";
+    if (c.supersedesId) badges += '<span class="muted" style="font-size:0.6875rem;border:1px solid #d5e0cf;border-radius:4px;padding:1px 6px;margin-left:6px">Edited &mdash; original kept on record</span>';
+    if (!c.seq) badges += '<span style="font-size:0.6875rem;color:#8a6d1a;border:1px solid #e6d9a8;background:#fdf8e7;border-radius:4px;padding:1px 6px;margin-left:6px">Not yet backed up</span>';
     return '<div class="card" style="padding:0.875rem;margin-bottom:8px">' +
       '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap">' +
       '<div><strong style="font-size:0.875rem;font-weight:600">' + esc(new Date(c.at).toLocaleDateString()) + '</strong> ' +
-      '<span class="muted" style="font-size:0.75rem">' + esc(new Date(c.at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })) + '</span><br>' +
+      '<span class="muted" style="font-size:0.75rem">' + esc(new Date(c.at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })) + '</span>' + badges + '<br>' +
       '<span style="font-size:0.8125rem;color:#555">' + summaryLine(c) + '</span></div>' +
       '<div style="display:flex;gap:4px">' +
       '<button type="button" class="btn sm" data-action="editCheckin" data-args="' + dataArgs([c.id]) + '">Edit</button>' +
-      '<button type="button" class="btn danger sm" data-action="deleteCheckin" data-args="' + dataArgs([c.id]) + '">Delete</button>' +
+      '<button type="button" class="btn danger sm" data-action="deleteCheckin" data-args="' + dataArgs([c.id]) + '">' + (c.seq ? "Withdraw" : "Delete") + '</button>' +
       '</div></div>' +
       (c.note && c.note.trim() ? '<p style="font-size:0.8125rem;color:#444;margin-top:6px;line-height:1.6">' + esc(c.note) + '</p>' : "") +
       '</div>';

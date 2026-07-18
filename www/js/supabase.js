@@ -134,7 +134,13 @@ function checkinRow(c){
   return {
     assessment_id: AID, user_id: CURRENT_USER_ID, local_id: String(c.id), at: c.at,
     mood: c.mood, mood_word: c.moodWord || "", fatigue: c.fatigue, pain: c.pain, clarity: c.clarity,
-    note: c.note || "", client_updated_at: ST.cu.checkins || new Date().toISOString()
+    note: c.note || "",
+    supersedes_local_id: c.supersedesId || null,
+    // The server ignores this value and assigns its own withdrawal
+    // time (see 0003 migration) - sending it is what requests the
+    // withdrawal transition on an already-received entry.
+    withdrawn_at: c.withdrawnAt || null,
+    client_updated_at: ST.cu.checkins || new Date().toISOString()
   };
 }
 function beforeRatingsRow(){
@@ -204,15 +210,24 @@ export async function pushPending(){
 
     if (mine.indexOf("checkins") >= 0){
       try{
+        // Append-only journal: upsert only, no delete-sync. (The 0003
+        // migration removed the client's delete right entirely - a
+        // delete() would silently match 0 rows anyway.) Entries the
+        // server already has go through the idempotent re-push /
+        // withdrawal paths of the checkins_immutable trigger; genuinely
+        // new entries (including corrections) are inserts and get their
+        // chain fields assigned server-side.
         var crows = ST.checkins.map(checkinRow);
-        var cids = ST.checkins.map(function(c){ return String(c.id); });
         if (crows.length){
           var r3 = await supabase.from("checkins").upsert(crows, { onConflict: "assessment_id,local_id" });
           if (r3.error) throw r3.error;
         }
-        var cdelq = supabase.from("checkins").delete().eq("assessment_id", AID);
-        var r4 = await (cids.length ? cdelq.not("local_id", "in", "(" + cids.join(",") + ")") : cdelq);
+        // Pull back the server-assigned chain fields (seq, received_at,
+        // hashes, server withdrawal time) so entries show as receipted
+        // immediately - "backed up" in the UI means seq is present.
+        var r4 = await supabase.from("checkins").select("*");
         if (r4.error) throw r4.error;
+        unionCheckins(r4.data || []);
         confirmed.push("checkins");
       }catch(e){ anyFailed = true; }
     }
@@ -306,15 +321,37 @@ function adoptD(r){
 function adoptS(rows){
   ST.sups = rows.map(function(r){ return { id: r.local_id, name: r.name || "", rel: r.rel || "", dur: r.dur || "", support: r.support || "", without: r.without_support || "", msg: r.msg || "" }; });
 }
+function serverCheckin(r){
+  return {
+    id: r.local_id, at: r.at, mood: r.mood, moodWord: r.mood_word || "",
+    fatigue: r.fatigue, pain: r.pain, clarity: r.clarity, note: r.note || "",
+    seq: r.seq || null, receivedAt: r.received_at || null, entryHash: r.entry_hash || null,
+    supersedesId: r.supersedes_local_id || null, withdrawnAt: r.withdrawn_at || null
+  };
+}
+// Hard replace - ONLY safe when local check-ins must not survive
+// (account switch: a previous user's journal must never leak into the
+// account now signing in). Everywhere else use unionCheckins.
 function adoptCheckins(rows){
-  ST.checkins = rows.map(function(r){ return { id: r.local_id, at: r.at, mood: r.mood, moodWord: r.mood_word || "", fatigue: r.fatigue, pain: r.pain, clarity: r.clarity, note: r.note || "" }; });
+  ST.checkins = rows.map(serverCheckin);
+}
+// Union merge - the journal is append-only, so a pull can never make
+// an entry disappear. Server rows are truth for anything the server
+// has received (its copy is immutable and carries the real withdrawal
+// state); local-only entries (not yet receipted) are kept. Returns
+// true when local-only entries remain, i.e. a push is still owed.
+function unionCheckins(rows){
+  var byId = {};
+  rows.forEach(function(r){ byId[String(r.local_id)] = serverCheckin(r); });
+  var localOnly = ST.checkins.filter(function(c){ return !byId[String(c.id)]; });
+  ST.checkins = rows.map(function(r){ return byId[String(r.local_id)]; }).concat(localOnly);
+  return localOnly.length > 0;
 }
 function adoptB(b){
   ST.brate = { locked: !!b.locked, items: b.items || {} };
   ST.brateLockedAt = b.locked_at || ST.brateLockedAt;
 }
 function adoptCloudAll(cl){
-  var checkinsBak = null; // fresh() already resets checkins; nothing to preserve
   AKEYS.forEach(function(k){ adoptA(cl.a, k); });
   cl.d.forEach(adoptD);
   adoptS(cl.s);
@@ -355,9 +392,19 @@ function mergeSections(cl){
   if (!cs) cl.s.forEach(function(r){ if (!cs || r.client_updated_at > cs) cs = r.client_updated_at; });
   if (!newerLocal(ST.cu.s, cs) && cs){ adoptS(cl.s); adoptAndSync("s", cs); }
 
+  // Check-ins: always union, never pick a winner - an append-only
+  // journal has no "newer side", only entries the server has receipted
+  // and entries it hasn't seen yet.
   var ck = ccu.checkins || null;
   if (!ck) cl.checkins.forEach(function(r){ if (!ck || r.client_updated_at > ck) ck = r.client_updated_at; });
-  if (!newerLocal(ST.cu.checkins, ck) && ck){ adoptCheckins(cl.checkins); adoptAndSync("checkins", ck); }
+  var owed = unionCheckins(cl.checkins);
+  if (owed){
+    // Local-only entries exist - make sure the section reads as
+    // pending so the push loop sends them.
+    if (ST.cu.checkins === ST.cuSynced.checkins) ST.cu.checkins = new Date().toISOString();
+  } else if (ck && !newerLocal(ST.cu.checkins, ck)){
+    adoptAndSync("checkins", ck);
+  }
 
   // Locked before-ratings are the "uncontaminated baseline" - once
   // locked anywhere, that locked state always wins, on any device -
@@ -430,17 +477,32 @@ export async function pullAndReconcile(){
   }
 }
 
-// Resolutions for the first-sync conflict screen.
+// Resolutions for the first-sync conflict screen. The choice governs
+// the ASSESSMENT sections; the check-in journal is append-only and is
+// union-merged under either choice - "keep cloud" must not discard
+// entries written on this device, and "keep local" must not orphan
+// entries the server has already receipted. (This is the same user on
+// both sides - the account-switch path never offers this choice and
+// keeps hard-replace semantics.)
 export async function keepCloudChoice(){
   var cl = CHOICE; CHOICE = null;
   var user = (await supabase.auth.getUser()).data.user;
+  var localCk = ST.checkins.slice();
   adoptCloudAll(cl);
+  var have = {};
+  ST.checkins.forEach(function(c){ have[String(c.id)] = true; });
+  var extra = localCk.filter(function(c){ return !have[String(c.id)]; });
+  if (extra.length){
+    ST.checkins = ST.checkins.concat(extra);
+    ST.cu.checkins = new Date().toISOString(); // pending, so they push
+  }
   if (user) await db.setSyncMark(user.id);
   establishSnapshotBaseline();
 }
 export async function keepLocalChoice(){
-  CHOICE = null;
+  var cl = CHOICE; CHOICE = null;
   var user = (await supabase.auth.getUser()).data.user;
+  if (cl) unionCheckins(cl.checkins);
   if (user) await db.setSyncMark(user.id);
   stampAll();
 }

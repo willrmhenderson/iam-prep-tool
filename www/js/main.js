@@ -265,8 +265,23 @@ async function saveCheckin(){
   go("checkin-history");
 }
 function deleteCheckin(id){
-  if (!confirm("Delete this check-in? This cannot be undone.")) return;
-  ST.checkins = ST.checkins.filter(function(c){ return c.id !== id; });
+  var entry = ST.checkins.find(function(c){ return c.id === id; });
+  if (!entry || entry.withdrawnAt) return;
+  if (entry.seq){
+    // Receipted: the record is append-only, so this is a withdrawal -
+    // words and ratings erased everywhere, existence preserved. The
+    // server assigns the real withdrawal time on push (0003 trigger);
+    // the local stamp is provisional until then.
+    if (!confirm("Withdraw this check-in?\n\nYour words and ratings will be permanently erased everywhere. The date, and the fact that an entry existed, will remain visible in your record.\n\nThis cannot be undone.")) return;
+    entry.withdrawnAt = new Date().toISOString();
+    entry.note = ""; entry.moodWord = "";
+    entry.mood = null; entry.fatigue = null; entry.pain = null; entry.clarity = null;
+  } else {
+    // Never backed up: nothing has been received, so a true delete is
+    // honest - the record's guarantees start at receipt.
+    if (!confirm("Delete this check-in? It has not been backed up yet, so it will be gone completely. This cannot be undone.")) return;
+    ST.checkins = ST.checkins.filter(function(c){ return c.id !== id; });
+  }
   touch(); save();
   refresh();
 }
